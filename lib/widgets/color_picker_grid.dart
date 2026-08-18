@@ -34,13 +34,13 @@ class ColorPickerGrid extends StatelessWidget {
                   : null,
               color: c.hex == 'multi' ? null : hexToColor(c.hex),
               border: Border.all(
-                color: isSelected ? AppColors.wine : Colors.black12,
+                color: isSelected ? AppColors.primary : Colors.black12,
                 width: isSelected ? 3 : 1,
               ),
               boxShadow: isSelected
                   ? [
                       BoxShadow(
-                        color: AppColors.wine.withOpacity(0.4),
+                        color: AppColors.primary.withOpacity(0.4),
                         blurRadius: 4,
                       )
                     ]

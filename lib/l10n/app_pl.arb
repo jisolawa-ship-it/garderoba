@@ -1,0 +1,33 @@
+{
+  "@@locale": "pl",
+
+  "appName": "Szafnik",
+  "@appName": { "description": "Nazwa aplikacji, widoczna m.in. w nagłówku Home" },
+
+  "navHome": "Home",
+  "navWardrobe": "Garderoba",
+  "navOutfits": "Stylizacje",
+  "navCalendar": "Kalendarz",
+  "navProfile": "Profil",
+
+  "greeting": "Dzień dobry, {name}",
+  "@greeting": {
+    "description": "Powitanie na Home z imieniem użytkowniczki",
+    "placeholders": { "name": { "type": "String" } }
+  },
+  "greetingNoName": "Dzień dobry",
+
+  "todayLabel": "DZISIAJ",
+  "todayNoOutfit": "Nie masz jeszcze zaplanowanej stylizacji",
+  "todayTapToCreate": "Dotknij, żeby ją stworzyć",
+
+  "tipLabel": "WSKAZÓWKA",
+
+  "createOutfit": "Stwórz stylizację",
+
+  "wardrobeEmptyTitle": "Twoja garderoba czeka",
+  "wardrobeEmptySubtitle": "Dodaj pierwsze ubrania i zacznij tworzyć stylizacje, które pokochasz.",
+  "addManually": "Dodaj ręcznie",
+
+  "searchWardrobe": "Szukaj w garderobie"
+}

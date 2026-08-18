@@ -9,6 +9,9 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+  flutter_localizations:
+    sdk: flutter
+  intl: ^0.20.2
   cupertino_icons: ^1.0.6
   provider: ^6.1.2
   shared_preferences: ^2.2.3
@@ -23,16 +26,42 @@ dependencies:
   firebase_storage: ^12.3.4
   cached_network_image: ^3.4.1
   google_fonts: ^6.2.1
+  google_mlkit_image_labeling: ^0.13.0
+  drift: ^2.20.0
+  sqlite3_flutter_libs: ^0.5.24
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^4.0.0
+  drift_dev: ^2.20.0
+  build_runner: ^2.4.11
+  flutter_launcher_icons: ^0.14.1
 
 flutter:
   uses-material-design: true
+  generate: true
   assets:
+    - assets/images/door_left.png
+    - assets/images/door_right.png
     - assets/images/wardrobe_bg.jpg
-    - assets/images/summary_header.jpg
-    - assets/images/outfits_empty.jpg
+    - assets/images/wardrobe_empty.png
+    - assets/images/summary_empty.png
+    - assets/images/outfits_empty.png
+    - assets/images/calendar_empty.png
     - assets/images/summary_box.jpg
+    - assets/images/mannequin_fitting_room.png
+    - assets/images/home_hero.jpg
+    - assets/images/logo_hanger.png
+
+# Konfiguracja ikonki appki na telefonie - generowana automatycznie z jednego
+# źródłowego obrazka poleceniem: flutter pub run flutter_launcher_icons
+flutter_launcher_icons:
+  android: true
+  ios: true
+  image_path: "assets/images/app_icon.png"
+  # Android (nowoczesne "adaptacyjne" ikonki) - osobno tło i logo na wierzchu,
+  # żeby system mógł je przyciąć do koła/kwadratu z zaokrąglonymi rogami itd.,
+  # bez ucinania samego logo.
+  adaptive_icon_background: "#FAF3ED"
+  adaptive_icon_foreground: "assets/images/app_icon_foreground.png"

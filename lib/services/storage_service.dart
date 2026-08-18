@@ -1,50 +1,12 @@
-import 'dart:convert';
 import 'dart:io';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-import '../models/clothing_item.dart';
-import '../models/outfit.dart';
 
+/// Obsługa plików zdjęć na dysku urządzenia. Dane ubrań/stylizacji
+/// (dawniej trzymane też tutaj jako JSON) przeniosły się do lokalnej
+/// bazy Drift (`WardrobeLocalStore`) - ten serwis zajmuje się już
+/// wyłącznie plikami.
 class StorageService {
-  static const _dataKey = 'wardrobe_data_v1';
-
-  Future<Map<String, dynamic>> loadRaw() async {
-    final prefs = await SharedPreferences.getInstance();
-    final raw = prefs.getString(_dataKey);
-    if (raw == null || raw.isEmpty) {
-      return {'items': [], 'outfits': []};
-    }
-    try {
-      return jsonDecode(raw) as Map<String, dynamic>;
-    } catch (_) {
-      return {'items': [], 'outfits': []};
-    }
-  }
-
-  Future<List<ClothingItem>> loadItems() async {
-    final raw = await loadRaw();
-    final list = (raw['items'] as List? ?? []);
-    return list
-        .map((e) => ClothingItem.fromJson(e as Map<String, dynamic>))
-        .toList();
-  }
-
-  Future<List<Outfit>> loadOutfits() async {
-    final raw = await loadRaw();
-    final list = (raw['outfits'] as List? ?? []);
-    return list.map((e) => Outfit.fromJson(e as Map<String, dynamic>)).toList();
-  }
-
-  Future<void> saveAll(List<ClothingItem> items, List<Outfit> outfits) async {
-    final prefs = await SharedPreferences.getInstance();
-    final payload = {
-      'items': items.map((e) => e.toJson()).toList(),
-      'outfits': outfits.map((e) => e.toJson()).toList(),
-    };
-    await prefs.setString(_dataKey, jsonEncode(payload));
-  }
-
   /// Kopiuje wybrane zdjęcie do katalogu dokumentów aplikacji i zwraca
   /// docelową ścieżkę pliku, żeby przetrwało po zamknięciu galerii/kamery.
   Future<String> persistPhoto(File sourceFile, String itemId) async {

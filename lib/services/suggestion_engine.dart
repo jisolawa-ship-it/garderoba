@@ -9,7 +9,7 @@ class SuggestionCombo {
 
   SuggestionCombo(this.items, {this.basedOnOutfitName});
 
-  double get total => items.fold(0.0, (s, i) => s + i.price);
+  double get total => items.fold(0.0, (s, i) => s + (i.price ?? 0));
 
   String get sortedKey {
     final ids = items.map((i) => i.id).toList()..sort();
@@ -25,6 +25,40 @@ class _History {
 
 class SuggestionEngine {
   static final Random _rand = Random();
+
+  /// Szuka najlepiej pasującego ubrania z danej kategorii do tego, co już
+  /// jest wybrane (np. na manekinie w Przymierzalni) - ta sama logika
+  /// dopasowania kolorystycznego + historii noszenia co przy zwykłych
+  /// sugestiach stylizacji, tylko wywoływana wprost, na żądanie (nigdy
+  /// automatycznie), dla jednej wskazanej kategorii.
+  static ClothingItem? bestMatchForCategory({
+    required List<ClothingItem> currentItems,
+    required List<ClothingItem> allItems,
+    required List<Outfit> outfits,
+    required ClothingCategory category,
+  }) {
+    final currentIds = currentItems.map((i) => i.id).toSet();
+    final pool = allItems
+        .where((i) => i.category == category && !currentIds.contains(i.id))
+        .toList();
+    if (pool.isEmpty) return null;
+    if (currentItems.isEmpty) return _shuffled(pool).first;
+
+    final history = _buildHistory(allItems, outfits);
+    ClothingItem? best;
+    double bestScore = -1;
+    for (final candidate in _shuffled(pool)) {
+      var score = 0.0;
+      for (final anchor in currentItems) {
+        score += _pairScore(anchor, candidate, history);
+      }
+      if (score > bestScore) {
+        bestScore = score;
+        best = candidate;
+      }
+    }
+    return best;
+  }
 
   static String _subcatKey(ClothingItem item) =>
       '${item.category.name}:${item.subcategory}';

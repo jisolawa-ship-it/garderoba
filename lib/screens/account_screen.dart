@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../state/wardrobe_provider.dart';
 import '../theme.dart';
+import '../widgets/glass_card.dart';
 
 class AccountScreen extends StatelessWidget {
   const AccountScreen({super.key});
@@ -16,7 +17,7 @@ class AccountScreen extends StatelessWidget {
       appBar: AppBar(
         backgroundColor: AppColors.bg,
         elevation: 0,
-        title: Text('Konto', style: displayFont(fontSize: 26)),
+        title: Text('Profil', style: displayFont(fontSize: 22)),
         foregroundColor: AppColors.ink,
       ),
       body: ListView(
@@ -48,9 +49,13 @@ class AccountScreen extends StatelessWidget {
                       icon: const Icon(Icons.login),
                       label: const Text('Zaloguj przez Google'),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.ink,
-                        foregroundColor: AppColors.paper,
+                        backgroundColor: AppColors.primary,
+                        foregroundColor: Colors.white,
                         padding: const EdgeInsets.symmetric(vertical: 14),
+                        elevation: 0,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(AppRadius.pill),
+                        ),
                       ),
                     ),
                   ),
@@ -63,7 +68,7 @@ class AccountScreen extends StatelessWidget {
                 children: [
                   CircleAvatar(
                     radius: 26,
-                    backgroundColor: AppColors.wineSoft,
+                    backgroundColor: AppColors.primarySoft,
                     backgroundImage:
                         user.photoURL != null ? NetworkImage(user.photoURL!) : null,
                     child: user.photoURL == null
@@ -72,7 +77,7 @@ class AccountScreen extends StatelessWidget {
                                     ? user.displayName![0]
                                     : user.email?[0] ?? '?')
                                 .toUpperCase(),
-                            style: const TextStyle(color: AppColors.wine, fontWeight: FontWeight.w700),
+                            style: const TextStyle(color: AppColors.primary, fontWeight: FontWeight.w700),
                           )
                         : null,
                   ),
@@ -81,9 +86,35 @@ class AccountScreen extends StatelessWidget {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
-                          user.displayName ?? 'Zalogowana',
-                          style: displayFont(fontSize: 16),
+                        Row(
+                          children: [
+                            Flexible(
+                              child: Text(
+                                user.displayName ?? 'Zalogowana',
+                                style: displayFont(fontSize: 16),
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                            if (wardrobe.isPremium) ...[
+                              const SizedBox(width: 6),
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                decoration: BoxDecoration(
+                                  color: AppColors.primary,
+                                  borderRadius: BorderRadius.circular(AppRadius.pill),
+                                ),
+                                child: const Text(
+                                  'PREMIUM',
+                                  style: TextStyle(
+                                    fontSize: 9,
+                                    color: Colors.white,
+                                    letterSpacing: 0.5,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ],
                         ),
                         if (user.email != null)
                           Text(
@@ -136,7 +167,11 @@ class AccountScreen extends StatelessWidget {
                       label: const Text('Synchronizuj teraz'),
                       style: OutlinedButton.styleFrom(
                         side: const BorderSide(color: AppColors.line),
+                        foregroundColor: AppColors.ink,
                         padding: const EdgeInsets.symmetric(vertical: 12),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(AppRadius.pill),
+                        ),
                       ),
                     ),
                   ),
@@ -153,6 +188,26 @@ class AccountScreen extends StatelessWidget {
               ),
             ),
           ],
+          const SizedBox(height: 14),
+          _panel(
+            child: Row(
+              children: [
+                const Icon(Icons.settings_outlined, size: 20, color: AppColors.inkSoft),
+                const SizedBox(width: 12),
+                const Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('Ustawienia', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
+                      SizedBox(height: 2),
+                      Text('Wkrótce - do rozbudowy',
+                          style: TextStyle(fontSize: 11, color: AppColors.inkSoft)),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
         ],
       ),
     );
@@ -162,13 +217,9 @@ class AccountScreen extends StatelessWidget {
       '${t.hour.toString().padLeft(2, '0')}:${t.minute.toString().padLeft(2, '0')}';
 
   Widget _panel({required Widget child}) {
-    return Container(
+    return GlassCard(
+      radius: AppRadius.card,
       padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: AppColors.paper,
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: AppColors.line),
-      ),
       child: child,
     );
   }
