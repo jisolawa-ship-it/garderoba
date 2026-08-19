@@ -399,34 +399,13 @@ class _FittingRoomScreenState extends State<FittingRoomScreen> {
                             child: Stack(
                               children: [
                                 Positioned.fill(
-                                  child: Stack(
-                                    children: [
-                                      // Delikatna poświata za manekinem - ten sam efekt
-                                      // głębi, co miał poprzedni, rysowany manekin.
-                                      Positioned.fill(
-                                        child: DecoratedBox(
-                                          decoration: BoxDecoration(
-                                            gradient: RadialGradient(
-                                              center: const Alignment(0, -0.35),
-                                              radius: 0.75,
-                                              colors: [
-                                                AppColors.primarySoft.withOpacity(0.4),
-                                                Colors.transparent,
-                                              ],
-                                            ),
-                                          ),
-                                        ),
-                                      ),
-                                      Positioned.fill(
-                                        child: Padding(
-                                          padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 36),
-                                          child: Image.asset(
-                                            'assets/images/mannequin_fitting_room.png',
-                                            fit: BoxFit.contain,
-                                          ),
-                                        ),
-                                      ),
-                                    ],
+                                  // Manekin na tle różowej wnęki - jedno gotowe
+                                  // zdjęcie (światło, cień i głębia są już w
+                                  // fotografii), więc bez dodatkowej poświaty.
+                                  child: Image.asset(
+                                    'assets/images/mannequin_fitting_room.jpg',
+                                    fit: BoxFit.cover,
+                                    alignment: Alignment.topCenter,
                                   ),
                                 ),
                                 if (_stickers.isEmpty)
