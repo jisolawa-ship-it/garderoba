@@ -28,9 +28,17 @@ class DashboardScreen extends StatelessWidget {
     return Scaffold(
       backgroundColor: AppColors.bg,
       body: ListView(
-        padding: const EdgeInsets.only(bottom: 130),
+        // Zamiast sztywnej liczby, licz realną wysokość paska nawigacji
+        // (patrz home_screen.dart: SizedBox 80 + padding 16 + bezpieczny
+        // margines urządzenia) + własny oddech - żeby "Stwórz stylizację"
+        // nigdy nie chowało się częściowo pod paskiem na telefonach
+        // z wyższym marginesem systemowym na dole.
+        padding: EdgeInsets.only(
+          bottom: 96 + MediaQuery.of(context).padding.bottom + 24,
+        ),
         children: [
           _hero(context, firstName),
+          _greeting(firstName),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 20),
             child: Column(
@@ -68,7 +76,10 @@ class DashboardScreen extends StatelessWidget {
           Image.asset(
             'assets/images/home_hero.jpg',
             fit: BoxFit.cover,
-            alignment: Alignment.topCenter,
+            // Lekko przesunięte w dół względem topCenter - obcina nadmiar
+            // samego sufitu nad żyrandolem i pozwala kadrowi sięgnąć głębiej
+            // w już wtopioną w krem dolną część zdjęcia (płynniejsze przejście).
+            alignment: const Alignment(0, -0.2),
           ),
           // Delikatna "podkładka" pod logo i napis - lżejsza niż wcześniej,
           // żeby zdjęcie w tle było bardziej wyraziste/ostre, a nie "spłowiałe".
@@ -137,29 +148,30 @@ class DashboardScreen extends StatelessWidget {
               ),
             ),
           ),
-          Positioned(
-            left: 0,
-            right: 0,
-            bottom: 18,
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Flexible(
-                    child: Text(
-                      firstName.isEmpty ? 'Dzień dobry' : 'Dzień dobry, $firstName',
-                      style: displayFont(fontSize: 24),
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-                  const SizedBox(width: 6),
-                  const Icon(Icons.favorite_border, size: 18, color: AppColors.primary),
-                ],
-              ),
+        ],
+      ),
+    );
+  }
 
+  /// Powitanie - świadomie POZA fotografią w tle (nie jako Positioned na
+  /// zdjęciu), tak żeby zawsze siedziało na jednolitym kremowym tle appki.
+  /// Dzięki temu jego czytelność i pozycja nie zależą od tego, gdzie
+  /// dokładnie kończy się rozmycie zdjęcia w danym kadrowaniu.
+  Widget _greeting(String firstName) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(24, 22, 24, 0),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Flexible(
+            child: Text(
+              firstName.isEmpty ? 'Dzień dobry' : 'Dzień dobry, $firstName',
+              style: displayFont(fontSize: 24),
+              overflow: TextOverflow.ellipsis,
             ),
           ),
+          const SizedBox(width: 6),
+          const Icon(Icons.favorite_border, size: 18, color: AppColors.primary),
         ],
       ),
     );

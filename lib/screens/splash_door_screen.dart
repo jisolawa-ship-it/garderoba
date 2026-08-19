@@ -23,13 +23,13 @@ class _SplashDoorScreenState extends State<SplashDoorScreen>
     super.initState();
     _controller = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 950),
+      duration: const Duration(milliseconds: 1600),
     );
     _progress = CurvedAnimation(parent: _controller, curve: Curves.easeInOutCubic);
 
     // Dłuższa pauza, żeby spokojnie zdążyć zobaczyć logo, zanim drzwi
     // zaczną się otwierać.
-    Future.delayed(const Duration(milliseconds: 400), () {
+    Future.delayed(const Duration(milliseconds: 650), () {
       if (mounted) _controller.forward();
     });
   }

@@ -42,7 +42,7 @@ class EmptyStateCard extends StatelessWidget {
       padding: EdgeInsets.zero,
       child: Column(
         children: [
-          Image.asset(imageAsset, height: 260, width: double.infinity, fit: BoxFit.contain),
+          Image.asset(imageAsset, width: double.infinity, fit: BoxFit.fitWidth),
           Padding(
             padding: const EdgeInsets.fromLTRB(24, 20, 24, 24),
             child: Column(

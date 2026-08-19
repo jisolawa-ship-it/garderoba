@@ -90,18 +90,33 @@ class PhotoAnalysisService {
     if (byteData == null) return null;
 
     final pixels = byteData.buffer.asUint8List();
+    final width = image.width;
+    final height = image.height;
+
+    // Próbkujemy tylko środkową część kadru - w typowym zdjęciu ubrania na
+    // wieszaku (nie na czystym, białym tle produktowym, tylko np. na
+    // drzwiach szafy) to właśnie środek niemal zawsze pokazuje samo
+    // ubranie, a brzegi kadru częściej łapią widoczne tło. Węższy margines
+    // w pionie niż w poziomie, bo ubranie zwykle zajmuje większość
+    // wysokości zdjęcia (od wieszaka do dołu), ale rzadziej całą szerokość.
+    final marginX = (width * 0.2).round();
+    final marginY = (height * 0.12).round();
+
     int rSum = 0, gSum = 0, bSum = 0, count = 0;
-    for (int i = 0; i < pixels.length; i += 4) {
-      final a = pixels[i + 3];
-      if (a < 128) continue; // pomijamy przezroczyste piksele
-      final r = pixels[i], g = pixels[i + 1], b = pixels[i + 2];
-      // pomijamy prawie-białe tło (typowe dla zdjęć produktowych), żeby nie
-      // zdominowało wyniku samym tłem zamiast ubrania
-      if (r > 235 && g > 235 && b > 235) continue;
-      rSum += r;
-      gSum += g;
-      bSum += b;
-      count++;
+    for (int y = marginY; y < height - marginY; y++) {
+      for (int x = marginX; x < width - marginX; x++) {
+        final i = (y * width + x) * 4;
+        final a = pixels[i + 3];
+        if (a < 128) continue; // pomijamy przezroczyste piksele
+        final r = pixels[i], g = pixels[i + 1], b = pixels[i + 2];
+        // nadal pomijamy prawie-białe piksele, gdyby akurat trafiło się
+        // czyste, jasne tło nawet w tej środkowej strefie
+        if (r > 235 && g > 235 && b > 235) continue;
+        rSum += r;
+        gSum += g;
+        bSum += b;
+        count++;
+      }
     }
     if (count == 0) return null;
 
