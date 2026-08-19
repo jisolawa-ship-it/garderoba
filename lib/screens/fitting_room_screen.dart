@@ -405,7 +405,7 @@ class _FittingRoomScreenState extends State<FittingRoomScreen> {
                                   child: Image.asset(
                                     'assets/images/mannequin_fitting_room.jpg',
                                     fit: BoxFit.cover,
-                                    alignment: Alignment.topCenter,
+                                    alignment: Alignment.bottomCenter,
                                   ),
                                 ),
                                 if (_stickers.isEmpty)
