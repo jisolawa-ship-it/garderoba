@@ -25,20 +25,38 @@ workflows:
     environment:
       flutter: stable
     scripts:
-      - name: Pobierz zależności Fluttera
-        script: |
-          flutter pub get
+    - name: Pobierz zależności Fluttera
+    script: |
+      flutter clean
+      flutter pub get
+
       - name: Wygeneruj pliki bazy danych (Drift)
-        script: |
-          dart run build_runner build --delete-conflicting-outputs
+    script: |
+      dart run build_runner build --delete-conflicting-outputs
+
+      - name: Napraw iOS (Podfile + wersja iOS)
+    script: |
+      mkdir -p ios
+      cat > ios/Podfile <<EOF
+      platform :ios, '15.0'
+      target 'Runner' do
+        use_frameworks!
+      end
+      EOF
+
+      - name: Zainstaluj CocoaPods
+    script: |
+      cd ios
+      pod install
+      cd ..
+
       - name: Zbuduj niepodpisaną aplikację iOS
-        script: |
-          flutter build ios --release --no-codesign
+    script: |
+      flutter build ios --release --no-codesign
+
       - name: Spakuj do pliku .ipa
-        script: |
-          mkdir -p build/ios/iphoneos/Payload
-          cp -r build/ios/iphoneos/Runner.app build/ios/iphoneos/Payload/
-          cd build/ios/iphoneos
-          zip -r Garderoba.ipa Payload
-    artifacts:
-      - build/ios/iphoneos/Garderoba.ipa
+    script: |
+      mkdir -p build/ios/iphoneos/Payload
+      cp -r build/ios/iphoneos/Runner.app build/ios/iphoneos/Payload/
+      cd build/ios/iphoneos
+      zip -r Garderoba.ipa Payload
