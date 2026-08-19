@@ -44,7 +44,7 @@ workflows:
 
       - name: Ustaw wersję iOS (fix konfliktu)
         script: |
-          sed -i '' "s/# platform :ios.*/platform :ios, '15.0'/" ios/Podfile
+          sed -i '' "s/# platform :ios.*/platform :ios, '15.5'/" ios/Podfile
 
       - name: Zainstaluj CocoaPods
         script: |
