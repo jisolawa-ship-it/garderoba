@@ -1,4 +1,4 @@
-package com.example.garderoba
+package com.elory.szafnik
 
 import io.flutter.embedding.android.FlutterActivity
 
