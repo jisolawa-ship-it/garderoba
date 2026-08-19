@@ -7,12 +7,20 @@
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:245401359956:android:aba1187e2b0177d888ffc1",
+        "mobilesdk_app_id": "1:245401359956:android:0ba375836dbf17af88ffc1",
         "android_client_info": {
-          "package_name": "com.example.aplikacja"
+          "package_name": "com.elory.szafnik"
         }
       },
       "oauth_client": [
+        {
+          "client_id": "245401359956-4i2a2qe8d96evm3uvn4o7kkduh920j4n.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.elory.szafnik",
+            "certificate_hash": "08a05f09d579e0eb311e1e6bb84f2b1f6f43958c"
+          }
+        },
         {
           "client_id": "245401359956-693lk2641vevaiasrn6b93l1nk6907am.apps.googleusercontent.com",
           "client_type": 3
@@ -29,6 +37,57 @@
             {
               "client_id": "245401359956-693lk2641vevaiasrn6b93l1nk6907am.apps.googleusercontent.com",
               "client_type": 3
+            },
+            {
+              "client_id": "245401359956-4dtl561c6f29mq31d9mosh99giassp9d.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.elory.szafnik"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:245401359956:android:aba1187e2b0177d888ffc1",
+        "android_client_info": {
+          "package_name": "com.example.aplikacja"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "245401359956-6iakoe1cerp6m3t3g8r4639u4m8a22gc.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.aplikacja",
+            "certificate_hash": "08a05f09d579e0eb311e1e6bb84f2b1f6f43958c"
+          }
+        },
+        {
+          "client_id": "245401359956-693lk2641vevaiasrn6b93l1nk6907am.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDOhpOsNu7in4TFIYh9J8ppPz8GbACGboY"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "245401359956-693lk2641vevaiasrn6b93l1nk6907am.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "245401359956-4dtl561c6f29mq31d9mosh99giassp9d.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.elory.szafnik"
+              }
             }
           ]
         }

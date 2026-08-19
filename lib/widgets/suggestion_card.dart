@@ -42,7 +42,7 @@ class _SuggestionCardState extends State<SuggestionCard> {
     return main.subcategory.isNotEmpty ? main.subcategory : main.name;
   }
 
-  double get total => combo.fold(0.0, (s, i) => s + i.price);
+  double get total => combo.fold(0.0, (s, i) => s + (i.price ?? 0));
 
   @override
   Widget build(BuildContext context) {
@@ -149,8 +149,14 @@ class _SuggestionCardState extends State<SuggestionCard> {
                     items: sameCategory
                         .map((o) => DropdownMenuItem(
                               value: o.id,
-                              child: Text('${o.category.icon} ${o.name}',
-                                  overflow: TextOverflow.ellipsis),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(o.category.iconData, size: 14, color: AppColors.inkSoft),
+                                  const SizedBox(width: 6),
+                                  Flexible(child: Text(o.name, overflow: TextOverflow.ellipsis)),
+                                ],
+                              ),
                             ))
                         .toList(),
                     onChanged: (newId) {
@@ -182,7 +188,14 @@ class _SuggestionCardState extends State<SuggestionCard> {
             items: leftovers
                 .map((o) => DropdownMenuItem(
                       value: o.id,
-                      child: Text('${o.category.icon} ${o.name}', overflow: TextOverflow.ellipsis),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(o.category.iconData, size: 14, color: AppColors.inkSoft),
+                          const SizedBox(width: 6),
+                          Flexible(child: Text(o.name, overflow: TextOverflow.ellipsis)),
+                        ],
+                      ),
                     ))
                 .toList(),
             onChanged: (newId) {

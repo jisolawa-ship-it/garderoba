@@ -1,0 +1,28 @@
+{
+  "@@locale": "en",
+
+  "appName": "Szafnik",
+
+  "navHome": "Home",
+  "navWardrobe": "Wardrobe",
+  "navOutfits": "Outfits",
+  "navCalendar": "Calendar",
+  "navProfile": "Profile",
+
+  "greeting": "Good morning, {name}",
+  "greetingNoName": "Good morning",
+
+  "todayLabel": "TODAY",
+  "todayNoOutfit": "You don't have an outfit planned yet",
+  "todayTapToCreate": "Tap to create one",
+
+  "tipLabel": "TIP",
+
+  "createOutfit": "Create outfit",
+
+  "wardrobeEmptyTitle": "Your wardrobe is waiting",
+  "wardrobeEmptySubtitle": "Add your first items and start creating outfits you'll love.",
+  "addManually": "Add manually",
+
+  "searchWardrobe": "Search your wardrobe"
+}

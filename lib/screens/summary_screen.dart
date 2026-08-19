@@ -5,69 +5,163 @@ import '../models/clothing_item.dart';
 import '../state/wardrobe_provider.dart';
 import '../theme.dart';
 import '../utils.dart';
+import '../widgets/empty_state_card.dart';
+import '../widgets/glass_card.dart';
+import 'add_item_sheet.dart';
 
-class SummaryScreen extends StatelessWidget {
-  const SummaryScreen({super.key});
+/// Który panel szczegółowy otworzyć automatycznie po wejściu na ten ekran -
+/// używane przez wskazówki na Home, które prowadzą wprost do konkretnej
+/// sekcji, zamiast zostawiać Cię na samej górze ekranu.
+enum SummarySheetTarget {
+  categoryBreakdown,
+  worthConsidering,
+  bestPurchases,
+  deadCapital,
+  colorBreakdown,
+}
+
+class SummaryScreen extends StatefulWidget {
+  final SummarySheetTarget? autoOpen;
+  const SummaryScreen({super.key, this.autoOpen});
+
+  @override
+  State<SummaryScreen> createState() => _SummaryScreenState();
+}
+
+class _SummaryScreenState extends State<SummaryScreen> {
+  bool _autoOpenTriggered = false;
 
   @override
   Widget build(BuildContext context) {
     final wardrobe = context.watch<WardrobeProvider>();
     final items = wardrobe.items;
 
-    final totalValue = items.fold(0.0, (s, i) => s + i.price);
-    final worn = items.where((i) => i.wears > 0).toList();
+    if (items.isEmpty) {
+      return Scaffold(
+        backgroundColor: AppColors.bg,
+        appBar: AppBar(
+          backgroundColor: AppColors.bg,
+          elevation: 0,
+          foregroundColor: AppColors.ink,
+        ),
+        body: Padding(
+          padding: const EdgeInsets.all(20),
+          child: EmptyStateCard(
+            imageAsset: 'assets/images/summary_empty.png',
+            title: 'Jeszcze nie ma czego podsumować',
+            subtitle: 'Dodaj pierwsze ubrania, a zobaczysz tu wartość szafy, koszt noszenia i inne statystyki.',
+            buttonLabel: 'Dodaj ubranie',
+            onButtonTap: () => showAddOptionsSheet(context),
+          ),
+        ),
+      );
+    }
+
+    final totalValue = items.fold(0.0, (s, i) => s + (i.price ?? 0));
+    // "worn" i dalsze rankingi cenowe biorą pod uwagę tylko ubrania z
+    // uzupełnioną ceną - niekompletne (z dodawania grupowego, jeszcze bez
+    // ceny) nie zniekształcają statystyk, dopóki nie zostaną uzupełnione.
+    final worn = items.where((i) => i.wears > 0 && i.price != null).toList();
     final avgCpw = worn.isEmpty
         ? 0.0
-        : worn.fold(0.0, (s, i) => s + i.price / i.wears) / worn.length;
-    final neverWorn = items.length - worn.length;
+        : worn.fold(0.0, (s, i) => s + i.price! / i.wears) / worn.length;
 
+    final withPrice = items.where((i) => i.price != null).toList();
     ClothingItem? mostExpensive;
-    if (items.isNotEmpty) {
-      mostExpensive = items.reduce((a, b) => a.price >= b.price ? a : b);
+    if (withPrice.isNotEmpty) {
+      mostExpensive = withPrice.reduce((a, b) => a.price! >= b.price! ? a : b);
     }
     ClothingItem? bestValueItem;
     if (worn.isNotEmpty) {
       bestValueItem = worn.reduce(
-          (a, b) => (a.price / a.wears) <= (b.price / b.wears) ? a : b);
+          (a, b) => (a.price! / a.wears) <= (b.price! / b.wears) ? a : b);
     }
 
     final byCat = <ClothingCategory, double>{
       for (final c in ClothingCategory.values) c: 0,
     };
     for (final i in items) {
-      byCat[i.category] = (byCat[i.category] ?? 0.0) + i.price;
+      byCat[i.category] = (byCat[i.category] ?? 0.0) + (i.price ?? 0);
     }
     final maxCat = byCat.values.isEmpty ? 1.0 : (byCat.values.reduce((a, b) => a > b ? a : b)).clamp(1.0, double.infinity).toDouble();
 
-    final withCpw = worn.map((i) => MapEntry(i, i.price / i.wears)).toList()
+    // Martwy kapitał - suma zł "zamrożona" w ubraniach nigdy nie noszonych,
+    // nie tylko sama ich liczba (dokładniejsze niż samo "Nienoszone: N").
+    final deadCapitalItems = items.where((i) => i.wears == 0).toList()
+      ..sort((a, b) => (b.price ?? 0).compareTo(a.price ?? 0));
+    final deadCapitalValue = deadCapitalItems.fold(0.0, (s, i) => s + (i.price ?? 0));
+
+    // Rozbicie wartości szafy wg koloru - ten sam mechanizm co wg kategorii.
+    final byColor = <String, double>{};
+    for (final i in items) {
+      byColor[i.colorHex] = (byColor[i.colorHex] ?? 0.0) + (i.price ?? 0);
+    }
+    final maxColorValue = byColor.values.isEmpty
+        ? 1.0
+        : byColor.values.reduce((a, b) => a > b ? a : b).clamp(1.0, double.infinity).toDouble();
+    final topColorEntry = byColor.entries.isEmpty
+        ? null
+        : byColor.entries.reduce((a, b) => a.value >= b.value ? a : b);
+
+    final withCpw = worn.map((i) => MapEntry(i, i.price! / i.wears)).toList()
       ..sort((a, b) => a.value.compareTo(b.value));
     final best = withCpw.take(5).toList();
 
     final worstWorn = withCpw.where((e) => e.value >= 20).toList()
       ..sort((a, b) => b.value.compareTo(a.value));
-    final neverWornItems = items.where((i) => i.wears == 0 && i.price > 0).toList()
-      ..sort((a, b) => b.price.compareTo(a.price));
+    final neverWornItems = items.where((i) => i.wears == 0 && (i.price ?? 0) > 0).toList()
+      ..sort((a, b) => (b.price ?? 0).compareTo(a.price ?? 0));
 
     final firstName = wardrobe.user?.displayName?.trim().split(' ').first;
     final greeting = (firstName != null && firstName.isNotEmpty)
         ? 'Dzień dobry, $firstName! ✨'
         : 'Dzień dobry! ✨';
 
+    if (widget.autoOpen != null && !_autoOpenTriggered) {
+      _autoOpenTriggered = true;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        switch (widget.autoOpen!) {
+          case SummarySheetTarget.categoryBreakdown:
+            _showInfoSheet(context, 'Wartość szafy wg kategorii',
+                _categoryBreakdownContent(byCat, maxCat));
+            break;
+          case SummarySheetTarget.worthConsidering:
+            _showInfoSheet(context, 'Warto przemyśleć (drogie / rzadko noszone)',
+                _worthConsideringContent(worstWorn, neverWornItems));
+            break;
+          case SummarySheetTarget.bestPurchases:
+            _showInfoSheet(context, 'Najlepsze zakupy (najniższy koszt noszenia)',
+                _bestPurchasesContent(best));
+            break;
+          case SummarySheetTarget.deadCapital:
+            _showInfoSheet(context, 'Martwy kapitał (nigdy nie noszone)',
+                _deadCapitalContent(deadCapitalItems));
+            break;
+          case SummarySheetTarget.colorBreakdown:
+            _showInfoSheet(context, 'Wartość szafy wg koloru',
+                _colorBreakdownContent(byColor, maxColorValue));
+            break;
+        }
+      });
+    }
+
     return Scaffold(
       backgroundColor: AppColors.bg,
+      appBar: AppBar(
+        backgroundColor: AppColors.bg,
+        elevation: 0,
+        foregroundColor: AppColors.ink,
+      ),
       body: SafeArea(
         child: ListView(
           padding: const EdgeInsets.fromLTRB(0, 0, 0, 40),
           children: [
             Padding(
               padding: const EdgeInsets.fromLTRB(20, 16, 20, 16),
-              child: Container(
+              child: GlassCard(
+                radius: AppRadius.card,
                 padding: const EdgeInsets.all(14),
-                decoration: BoxDecoration(
-                  color: AppColors.paper,
-                  borderRadius: BorderRadius.circular(20),
-                  border: Border.all(color: AppColors.line),
-                ),
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -131,11 +225,25 @@ class SummaryScreen extends StatelessWidget {
                       ),
                       _statCard(Icons.checkroom_outlined, 'Liczba ubrań', '${items.length}'),
                       _statCard(Icons.payments_outlined, 'Śr. koszt noszenia', worn.isEmpty ? '—' : fmtPrice(avgCpw)),
-                      _statCard(Icons.favorite_border, 'Nienoszone', '$neverWorn'),
+                      _statCard(
+                        Icons.favorite_border,
+                        'Martwy kapitał',
+                        deadCapitalValue == 0 ? '—' : fmtPrice(deadCapitalValue),
+                        subtitle: deadCapitalItems.isEmpty
+                            ? 'Wszystko noszone!'
+                            : '${deadCapitalItems.length} ${deadCapitalItems.length == 1 ? "ubranie" : "ubrań"}',
+                        onTap: deadCapitalItems.isEmpty
+                            ? null
+                            : () => _showInfoSheet(
+                                  context,
+                                  'Martwy kapitał (nigdy nie noszone)',
+                                  _deadCapitalContent(deadCapitalItems),
+                                ),
+                      ),
                       _statCard(
                         Icons.diamond_outlined,
                         'Najdroższy zakup',
-                        mostExpensive == null ? '—' : fmtPrice(mostExpensive.price),
+                        mostExpensive == null ? '—' : fmtPrice(mostExpensive.price ?? 0),
                         subtitle: mostExpensive?.name ?? 'Brak ubrań',
                         onTap: () => _showInfoSheet(
                           context,
@@ -148,13 +256,26 @@ class SummaryScreen extends StatelessWidget {
                         'Najlepszy zakup',
                         bestValueItem == null
                             ? '—'
-                            : '${fmtPrice(bestValueItem.price / bestValueItem.wears)}/nosz.',
+                            : '${fmtPrice((bestValueItem.price ?? 0) / bestValueItem.wears)}/nosz.',
                         subtitle: bestValueItem?.name ?? 'Zacznij nosić ubrania',
                         onTap: () => _showInfoSheet(
                           context,
                           'Najlepsze zakupy (najniższy koszt noszenia)',
                           _bestPurchasesContent(best),
                         ),
+                      ),
+                      _statCard(
+                        Icons.palette_outlined,
+                        'Ulubiony kolor',
+                        topColorEntry == null ? '—' : colorNameFor(topColorEntry.key),
+                        subtitle: topColorEntry == null ? null : fmtPrice(topColorEntry.value),
+                        onTap: topColorEntry == null
+                            ? null
+                            : () => _showInfoSheet(
+                                  context,
+                                  'Wartość szafy wg koloru',
+                                  _colorBreakdownContent(byColor, maxColorValue),
+                                ),
                       ),
                     ],
                   ),
@@ -220,6 +341,74 @@ class SummaryScreen extends StatelessWidget {
     );
   }
 
+  Widget _deadCapitalContent(List<ClothingItem> deadCapitalItems) {
+    return deadCapitalItems.isEmpty
+        ? const Text('Wszystkie ubrania zostały już przynajmniej raz założone!',
+            style: TextStyle(color: AppColors.inkSoft))
+        : Column(
+            children: deadCapitalItems
+                .map((i) => _pickRow(
+                      i.name.isEmpty ? 'Bez nazwy' : i.name,
+                      i.price != null ? '${fmtPrice(i.price!)} · nigdy nie noszone' : 'nigdy nie noszone',
+                    ))
+                .toList(),
+          );
+  }
+
+  Widget _colorBreakdownContent(Map<String, double> byColor, double maxColor) {
+    final entries = byColor.entries.toList()..sort((a, b) => b.value.compareTo(a.value));
+    return Column(
+      children: entries.map((e) {
+        return Padding(
+          padding: const EdgeInsets.only(bottom: 10),
+          child: Row(
+            children: [
+              SizedBox(
+                width: 90,
+                child: Row(
+                  children: [
+                    Container(
+                      width: 12,
+                      height: 12,
+                      decoration: BoxDecoration(
+                        color: e.key == 'multi' ? AppColors.mustard : hexToColor(e.key),
+                        shape: BoxShape.circle,
+                        border: Border.all(color: AppColors.line),
+                      ),
+                    ),
+                    const SizedBox(width: 6),
+                    Flexible(
+                      child: Text(colorNameFor(e.key),
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(fontSize: 11, color: AppColors.inkSoft)),
+                    ),
+                  ],
+                ),
+              ),
+              Expanded(
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(8),
+                  child: LinearProgressIndicator(
+                    value: e.value / maxColor,
+                    minHeight: 10,
+                    backgroundColor: AppColors.bgSoft,
+                    valueColor: const AlwaysStoppedAnimation(AppColors.ink),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              SizedBox(
+                width: 70,
+                child: Text(fmtPrice(e.value),
+                    textAlign: TextAlign.right, style: monoFont(fontSize: 12)),
+              ),
+            ],
+          ),
+        );
+      }).toList(),
+    );
+  }
+
   Widget _categoryBreakdownContent(Map<ClothingCategory, double> byCat, double maxCat) {
     return Column(
       children: ClothingCategory.values.map((c) {
@@ -230,8 +419,17 @@ class SummaryScreen extends StatelessWidget {
             children: [
               SizedBox(
                 width: 90,
-                child: Text('${c.icon} ${c.label}',
-                    style: const TextStyle(fontSize: 11, color: AppColors.inkSoft)),
+                child: Row(
+                  children: [
+                    Icon(c.iconData, size: 12, color: AppColors.inkSoft),
+                    const SizedBox(width: 4),
+                    Flexible(
+                      child: Text(c.label,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(fontSize: 11, color: AppColors.inkSoft)),
+                    ),
+                  ],
+                ),
               ),
               Expanded(
                 child: ClipRRect(
@@ -280,7 +478,7 @@ class SummaryScreen extends StatelessWidget {
               ...worstWorn.take(6).map((e) => _pickRow(e.key.name, '${fmtPrice(e.value)} / noszenie')),
               ...neverWornItems
                   .take(6)
-                  .map((i) => _pickRow(i.name, '${fmtPrice(i.price)} · nigdy nie noszone')),
+                  .map((i) => _pickRow(i.name, '${fmtPrice(i.price ?? 0)} · nigdy nie noszone')),
             ],
           );
   }
@@ -289,13 +487,11 @@ class SummaryScreen extends StatelessWidget {
     final fontSize = value.length > 10 ? 13.0 : 17.0;
     return GestureDetector(
       onTap: onTap,
-      child: Container(
+      // cheap: true - 7 kafelków w siatce naraz na tym ekranie.
+      child: GlassCard(
+        radius: AppRadius.card,
         padding: const EdgeInsets.all(10),
-        decoration: BoxDecoration(
-          color: AppColors.paper,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: AppColors.line),
-        ),
+        cheap: true,
         child: Stack(
           children: [
             Column(
@@ -350,25 +546,6 @@ class SummaryScreen extends StatelessWidget {
             child: Text(name, style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 13)),
           ),
           Text(meta, style: monoFont(fontSize: 11, color: AppColors.inkSoft)),
-        ],
-      ),
-    );
-  }
-
-  Widget _panel({required String title, required Widget child}) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: AppColors.paper,
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: AppColors.line),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(title, style: displayFont(fontSize: 17)),
-          const SizedBox(height: 10),
-          child,
         ],
       ),
     );
