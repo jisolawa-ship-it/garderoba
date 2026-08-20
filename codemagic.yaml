@@ -38,19 +38,15 @@ workflows:
         script: |
           dart run build_runner build --delete-conflicting-outputs
 
-      - name: Wygeneruj projekt iOS
-        script: |
-          flutter create . --platforms=ios
-
-      - name: Ustaw wersję iOS (fix konfliktu)
-        script: |
-          sed -i '' "s/# platform :ios.*/platform :ios, '15.5'/" ios/Podfile
-
-      - name: Zainstaluj CocoaPods
-        script: |
-          cd ios
-          pod install
-          cd ..
+      # UWAGA: świadomie NIE ma tu już kroku "flutter create . --platforms=ios".
+      # Ten krok regenerował cały folder ios/ od zera przy KAŻDYM buildzie,
+      # co po cichu cofało nazwę pakietu, wersję iOS, nazwę appki i kasowało
+      # GoogleService-Info.plist - dokładnie to sprzątałyśmy ręcznie. Appka
+      # buduje się poprawnie bez tego kroku - "flutter build ios" sam radzi
+      # sobie z CocoaPods w tle, i sam odczytuje właściwą minimalną wersję
+      # iOS wprost z ustawień projektu (IPHONEOS_DEPLOYMENT_TARGET w
+      # ios/Runner.xcodeproj/project.pbxproj) - nie trzeba jej już osobno
+      # wymuszać w Podfile na etapie builda.
 
       - name: Zbuduj niepodpisaną aplikację iOS
         script: |
