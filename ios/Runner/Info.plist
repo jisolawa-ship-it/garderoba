@@ -10,6 +10,23 @@
 	<string>Szafnik</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
+	<!-- Wymagane przez google_sign_in na iOS: po wybraniu konta Google,
+	     system musi wiedzieć, jak wrócić przekierowaniem do appki - to jest
+	     odpowiednik SHA-1 z Androida, tylko po stronie iOS. Wartość to
+	     REVERSED_CLIENT_ID z ios/Runner/GoogleService-Info.plist (appka
+	     com.elory.szafnik). Bez tego logowanie na iOS wisi/nie wraca do
+	     appki po wybraniu konta. -->
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>com.googleusercontent.apps.245401359956-4dtl561c6f29mq31d9mosh99giassp9d</string>
+			</array>
+		</dict>
+	</array>
 	<key>CFBundleIdentifier</key>
 	<string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
 	<key>CFBundleInfoDictionaryVersion</key>
