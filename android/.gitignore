@@ -12,3 +12,10 @@ GeneratedPluginRegistrant.java
 key.properties
 **/*.keystore
 **/*.jks
+
+# Wyjątek: app/debug.keystore jest CELOWO commitowany. To wyłącznie klucz
+# debug (nie release) - jego jedyna rola to dawać ten sam, stały SHA-1 przy
+# każdym buildzie w Codemagic (bez tego Gradle generuje nowy, losowy
+# debug.keystore na każdej maszynie CI, co psuje logowanie Google - patrz
+# signingConfigs.debug w app/build.gradle.kts). Nic tu nie jest tajne.
+!app/debug.keystore
