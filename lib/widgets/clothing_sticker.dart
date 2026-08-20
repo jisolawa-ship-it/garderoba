@@ -27,6 +27,7 @@ class ClothingSticker extends StatefulWidget {
   final VoidCallback onTap;
   final VoidCallback onRemove;
   final VoidCallback onChanged;
+  final Size canvasSize;
 
   const ClothingSticker({
     super.key,
@@ -35,6 +36,7 @@ class ClothingSticker extends StatefulWidget {
     required this.onTap,
     required this.onRemove,
     required this.onChanged,
+    required this.canvasSize,
   });
 
   @override
@@ -48,13 +50,20 @@ class _ClothingStickerState extends State<ClothingSticker> {
   double _startRotation = 0.0;
 
   static const double _baseSize = 130;
+  // Ramka jest szersza niż wysoka - dla zdjęć pionowych zostaje odrobinę
+  // pustego miejsca po bokach (mało widoczne), ale zdjęcia poziome mają
+  // teraz realnie miejsce, żeby się w całości i sensownie zmieścić, zamiast
+  // kurczyć się do wąskiego paska na środku kwadratu.
+  static const double _widthFactor = 1.3;
 
   @override
   Widget build(BuildContext context) {
     final d = widget.data;
+    final w = _baseSize * _widthFactor * d.scale;
+    final h = _baseSize * d.scale;
     return Positioned(
-      left: d.position.dx - (_baseSize * d.scale) / 2,
-      top: d.position.dy - (_baseSize * d.scale) / 2,
+      left: d.position.dx - w / 2,
+      top: d.position.dy - h / 2,
       child: GestureDetector(
         onTap: widget.onTap,
         onScaleStart: (details) {
@@ -65,7 +74,17 @@ class _ClothingStickerState extends State<ClothingSticker> {
         },
         onScaleUpdate: (details) {
           setState(() {
-            d.position = _startPosition + (details.focalPoint - _startFocalPoint);
+            final raw = _startPosition + (details.focalPoint - _startFocalPoint);
+            // Ograniczamy pozycję do granic płótna (z małym marginesem, żeby
+            // dało się podejść blisko krawędzi) - inaczej przeciągnięcie
+            // wystarczająco daleko w bok chowa element poza obszarem, który
+            // płótno przycina, i staje się jednocześnie niewidzialny i
+            // nieklikalny, więc nie da się go już wyciągnąć z powrotem.
+            const margin = 24.0;
+            d.position = Offset(
+              raw.dx.clamp(margin, widget.canvasSize.width - margin),
+              raw.dy.clamp(margin, widget.canvasSize.height - margin),
+            );
             d.scale = (_startScale * details.scale).clamp(0.4, 2.5);
             d.rotation = _startRotation + details.rotation;
           });
@@ -74,8 +93,8 @@ class _ClothingStickerState extends State<ClothingSticker> {
         child: Transform.rotate(
           angle: d.rotation,
           child: Container(
-            width: _baseSize * d.scale,
-            height: _baseSize * d.scale,
+            width: w,
+            height: h,
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(14),
               border: widget.selected
@@ -86,21 +105,33 @@ class _ClothingStickerState extends State<ClothingSticker> {
             child: Stack(
               clipBehavior: Clip.none,
               children: [
-                ClothingPhotoBox(item: d.item, height: _baseSize * d.scale, borderRadius: 14),
+                ClothingPhotoBox(item: d.item, height: h, borderRadius: 14),
                 if (widget.selected)
                   Positioned(
-                    top: -10,
-                    right: -10,
+                    top: -16,
+                    right: -16,
+                    // Widoczna kropka zostaje mała (24px), ale klikalny
+                    // obszar wokół niej jest większy (40px) - to zmniejsza
+                    // ryzyko, że dotknięcie blisko krawędzi "przegra" z
+                    // gestem przeciągania całej naklejki, który siedzi tuż
+                    // pod spodem.
                     child: GestureDetector(
+                      behavior: HitTestBehavior.opaque,
                       onTap: widget.onRemove,
                       child: Container(
-                        width: 24,
-                        height: 24,
-                        decoration: const BoxDecoration(
-                          color: AppColors.ink,
-                          shape: BoxShape.circle,
+                        width: 40,
+                        height: 40,
+                        alignment: Alignment.center,
+                        color: Colors.transparent,
+                        child: Container(
+                          width: 24,
+                          height: 24,
+                          decoration: const BoxDecoration(
+                            color: AppColors.ink,
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(Icons.close, size: 14, color: AppColors.paper),
                         ),
-                        child: const Icon(Icons.close, size: 14, color: AppColors.paper),
                       ),
                     ),
                   ),

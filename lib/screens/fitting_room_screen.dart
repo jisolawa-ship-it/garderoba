@@ -453,6 +453,7 @@ class _FittingRoomScreenState extends State<FittingRoomScreen> {
                                     onTap: () => _bringToFront(sticker.id),
                                     onRemove: () => _removeSticker(sticker.id),
                                     onChanged: () {},
+                                    canvasSize: canvasSize,
                                   ),
                               ],
                             ),
