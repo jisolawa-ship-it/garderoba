@@ -25,6 +25,7 @@ class WardrobeProvider extends ChangeNotifier {
 
   User? _user;
   bool _syncing = false;
+  bool _signingIn = false;
   String? _syncError;
   DateTime? _lastSyncedAt;
   bool _isPremium = false;
@@ -38,6 +39,7 @@ class WardrobeProvider extends ChangeNotifier {
   User? get user => _user;
   bool get isSignedIn => _user != null;
   bool get isSyncing => _syncing;
+  bool get isSigningIn => _signingIn;
   String? get syncError => _syncError;
   DateTime? get lastSyncedAt => _lastSyncedAt;
   bool get isPremium => _isPremium;
@@ -76,12 +78,40 @@ class WardrobeProvider extends ChangeNotifier {
   }
 
   Future<void> signInWithGoogle() async {
+    // Bez tego guarda: przycisk w account_screen.dart nie miał żadnego
+    // stanu ładowania, więc podwójne/wielokrotne tapnięcie (np. gdy
+    // pierwsza próba się zawiesza) odpalało kilka równoległych
+    // _googleSignIn.signIn() naraz - to samo w sobie mogło wyglądać jak
+    // "appka nie reaguje", bo natywny plugin niekoniecznie dobrze
+    // obsługuje nakładające się wywołania.
+    if (_signingIn) return;
+
+    _signingIn = true;
     _syncError = null;
+    notifyListeners();
+
     try {
-      await _auth.signInWithGoogle();
+      // Twardy limit czasu - jeśli natywny flow Google Sign-In zawiesi się
+      // w środku (np. przez nieaktualne Google Play Services na telefonie
+      // testerki, albo sieć blokującą konkretnie endpoint tokenu), Future
+      // z _googleSignIn nigdy by się nie zakończył: bez timeoutu await
+      // wisiałby w nieskończoność - DOKŁADNIE objaw, który zgłaszasz
+      // (żaden błąd, bo catch nigdy by nie został wywołany).
+      await _auth.signInWithGoogle().timeout(
+        const Duration(seconds: 20),
+        onTimeout: () {
+          throw TimeoutException(
+            'Logowanie nie odpowiedziało w 20 sekund. Możliwe przyczyny: '
+            'nieaktualne Usługi Google Play na telefonie, albo sieć '
+            'blokująca połączenie z serwerami Google.',
+          );
+        },
+      );
       // reszta (synchronizacja) dzieje się w _onAuthChanged
     } catch (e) {
       _syncError = 'Nie udało się zalogować: $e';
+    } finally {
+      _signingIn = false;
       notifyListeners();
     }
   }

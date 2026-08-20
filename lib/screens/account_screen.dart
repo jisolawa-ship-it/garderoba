@@ -43,11 +43,22 @@ class AccountScreen extends StatelessWidget {
                   SizedBox(
                     width: double.infinity,
                     child: ElevatedButton.icon(
-                      onPressed: wardrobe.isSyncing
+                      onPressed: wardrobe.isSyncing || wardrobe.isSigningIn
                           ? null
                           : () => wardrobe.signInWithGoogle(),
-                      icon: const Icon(Icons.login),
-                      label: const Text('Zaloguj przez Google'),
+                      icon: wardrobe.isSigningIn
+                          ? const SizedBox(
+                              width: 18,
+                              height: 18,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: Colors.white,
+                              ),
+                            )
+                          : const Icon(Icons.login),
+                      label: Text(
+                        wardrobe.isSigningIn ? 'Logowanie…' : 'Zaloguj przez Google',
+                      ),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppColors.primary,
                         foregroundColor: Colors.white,
@@ -59,6 +70,13 @@ class AccountScreen extends StatelessWidget {
                       ),
                     ),
                   ),
+                  if (wardrobe.syncError != null) ...[
+                    const SizedBox(height: 10),
+                    Text(
+                      wardrobe.syncError!,
+                      style: const TextStyle(color: AppColors.wine, fontSize: 12, height: 1.4),
+                    ),
+                  ],
                 ],
               ),
             ),
