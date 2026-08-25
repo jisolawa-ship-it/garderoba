@@ -63,41 +63,54 @@ class _OutfitsScreenState extends State<OutfitsScreen> {
       body: ListView(
         padding: const EdgeInsets.fromLTRB(16, 12, 16, 40),
         children: [
-          _panel(
-            title: 'Sugestie stylizacji',
-            trailing: ElevatedButton(
-              onPressed: () => _regenerateSuggestions(wardrobe),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.ink,
-                foregroundColor: AppColors.paper,
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          // Sugestie stylizacji wymagają czegoś w szafie, żeby cokolwiek
+          // zaproponować - przy pustej Garderobie panel tylko zajmowałby
+          // miejsce nad pustym stanem poniżej, więc pokazujemy go dopiero,
+          // gdy jest z czego sugerować.
+          if (wardrobe.items.isNotEmpty) ...[
+            _panel(
+              title: 'Sugestie stylizacji',
+              trailing: ElevatedButton.icon(
+                onPressed: () => _regenerateSuggestions(wardrobe),
+                icon: const Icon(Icons.shuffle, size: 15),
+                label: const Text('Losuj inne', style: TextStyle(fontSize: 12)),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.primary,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                  elevation: 0,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadius.pill)),
+                ),
               ),
-              child: const Text('🔀 Losuj inne', style: TextStyle(fontSize: 12)),
+              child: wardrobe.items.length < 2
+                  ? const Text('Dodaj więcej ubrań do szafy, żeby zobaczyć sugestie.',
+                      style: TextStyle(color: AppColors.inkSoft))
+                  : _suggestions.isEmpty
+                      ? const Text(
+                          'Brak nowych propozycji — dodaj więcej ubrań albo zapisz istniejące stylizacje.',
+                          style: TextStyle(color: AppColors.inkSoft))
+                      : Column(
+                          children: _suggestions
+                              .map((s) => SuggestionCard(
+                                    key: ValueKey(s.sortedKey),
+                                    initialCombo: s.items,
+                                    basedOnOutfitName: s.basedOnOutfitName,
+                                    allItems: wardrobe.items,
+                                    onUse: _useSuggestion,
+                                  ))
+                              .toList(),
+                        ),
             ),
-            child: wardrobe.items.length < 2
-                ? const Text('Dodaj więcej ubrań do szafy, żeby zobaczyć sugestie.',
-                    style: TextStyle(color: AppColors.inkSoft))
-                : _suggestions.isEmpty
-                    ? const Text(
-                        'Brak nowych propozycji — dodaj więcej ubrań albo zapisz istniejące stylizacje.',
-                        style: TextStyle(color: AppColors.inkSoft))
-                    : Column(
-                        children: _suggestions
-                            .map((s) => SuggestionCard(
-                                  key: ValueKey(s.sortedKey),
-                                  initialCombo: s.items,
-                                  basedOnOutfitName: s.basedOnOutfitName,
-                                  allItems: wardrobe.items,
-                                  onUse: _useSuggestion,
-                                ))
-                            .toList(),
-                      ),
-          ),
-          const SizedBox(height: 16),
+            const SizedBox(height: 16),
+          ],
           if (wardrobe.outfits.isEmpty)
             EmptyStateCard(
               imageAsset: 'assets/images/outfits_empty.png',
+              // outfits_empty.png jest bardzo wysokie/wąskie (proporcje
+              // ~0.46) - bez limitu wysokości sama grafika nie mieściłaby
+              // się na ekranie i trzeba by scrollować, żeby zobaczyć tekst
+              // i przycisk pod spodem.
+              imageHeight: 240,
               title: 'Brak zapisanych stylizacji',
               subtitle: wardrobe.items.isEmpty
                   ? 'Zacznij od dodania pierwszych ubrań do szafy.'

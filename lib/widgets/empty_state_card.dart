@@ -18,6 +18,12 @@ class EmptyStateCard extends StatelessWidget {
   final VoidCallback? onButtonTap;
   final bool compact;
   final IconData compactIcon;
+  /// Opcjonalny limit wysokości grafiki (BoxFit.cover zamiast fitWidth).
+  /// Domyślnie brak limitu - wysokość wynika z proporcji obrazka
+  /// (BoxFit.fitWidth), tak jak dotychczas. Ustaw, gdy konkretny obrazek ma
+  /// proporcje (bardzo wysoki/wąski), przez które cała karta nie mieści się
+  /// na ekranie bez przewijania.
+  final double? imageHeight;
 
   const EmptyStateCard({
     super.key,
@@ -28,6 +34,7 @@ class EmptyStateCard extends StatelessWidget {
     this.onButtonTap,
     this.compact = false,
     this.compactIcon = Icons.checkroom_outlined,
+    this.imageHeight,
   });
 
   @override
@@ -42,7 +49,13 @@ class EmptyStateCard extends StatelessWidget {
       padding: EdgeInsets.zero,
       child: Column(
         children: [
-          Image.asset(imageAsset, width: double.infinity, fit: BoxFit.fitWidth),
+          imageHeight != null
+              ? SizedBox(
+                  height: imageHeight,
+                  width: double.infinity,
+                  child: Image.asset(imageAsset, fit: BoxFit.cover),
+                )
+              : Image.asset(imageAsset, width: double.infinity, fit: BoxFit.fitWidth),
           Padding(
             padding: const EdgeInsets.fromLTRB(24, 20, 24, 24),
             child: Column(
