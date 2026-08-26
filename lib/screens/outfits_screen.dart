@@ -217,45 +217,43 @@ class _OutfitsScreenState extends State<OutfitsScreen> {
           fit: BoxFit.fitWidth,
         ),
         // 0.58 szerokości ekranu - tyle, ile ma światło łuku w tym miejscu,
-        // żeby tekst i przycisk nie wychodziły na złoty obrys.
+        // żeby tekst i przycisk nie wychodziły na złoty obrys. Bez karty pod
+        // spodem - sam tekst leży bezpośrednio na zdjęciu (tło jest na tyle
+        // jasne, że ciemny tytuł zachowuje dobry kontrast).
         FractionallySizedBox(
           widthFactor: 0.58,
-          child: GlassCard(
-            radius: AppRadius.hero,
-            padding: const EdgeInsets.fromLTRB(20, 20, 20, 20),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text('Brak zapisanych stylizacji',
-                    style: displayFont(fontSize: 16), textAlign: TextAlign.center),
-                const SizedBox(height: 6),
-                Text(
-                  wardrobe.items.isEmpty
-                      ? 'Zacznij od dodania pierwszych ubrań do szafy.'
-                      : 'Stwórz swoją pierwszą stylizację w Przymierzalni (zakładka Home).',
-                  style: const TextStyle(fontSize: 12, color: AppColors.inkSoft, height: 1.4),
-                  textAlign: TextAlign.center,
-                ),
-                if (wardrobe.items.isEmpty) ...[
-                  const SizedBox(height: 16),
-                  SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton.icon(
-                      onPressed: () => showAddOptionsSheet(context),
-                      icon: const Icon(Icons.add, size: 16),
-                      label: const Text('Dodaj ubranie', style: TextStyle(fontSize: 13)),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.primary,
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(vertical: 12),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadius.pill)),
-                        elevation: 0,
-                      ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text('Brak zapisanych stylizacji',
+                  style: displayFont(fontSize: 17), textAlign: TextAlign.center),
+              const SizedBox(height: 6),
+              Text(
+                wardrobe.items.isEmpty
+                    ? 'Zacznij od dodania pierwszych ubrań do szafy.'
+                    : 'Stwórz swoją pierwszą stylizację w Przymierzalni (zakładka Home).',
+                style: const TextStyle(fontSize: 13, color: AppColors.inkSoft, height: 1.4),
+                textAlign: TextAlign.center,
+              ),
+              if (wardrobe.items.isEmpty) ...[
+                const SizedBox(height: 18),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton.icon(
+                    onPressed: () => showAddOptionsSheet(context),
+                    icon: const Icon(Icons.add, size: 16),
+                    label: const Text('Dodaj ubranie', style: TextStyle(fontSize: 13)),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.primary,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadius.pill)),
+                      elevation: 0,
                     ),
                   ),
-                ],
+                ),
               ],
-            ),
+            ],
           ),
         ),
       ],
