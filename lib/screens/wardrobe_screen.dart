@@ -196,11 +196,10 @@ class _WardrobeScreenState extends State<WardrobeScreen> {
   }
 
   /// Pusty stan Garderoby - ten sam wzorzec co na pustym ekranie Stylizacji:
-  /// tło (otwarta szafa z wieszakiem-sercem na ścianie) wypełnia całą
-  /// szerokość ekranu, tekst i przycisk leżą bezpośrednio na zdjęciu, bez
-  /// karty pod spodem. Umieszczone POD ikoną wieszaka (już narysowaną w
-  /// grafice), na pustej ścianie między nią a podłogą - Alignment(0, 0.33)
-  /// to wymierzony piksel po pikselu środek tej wolnej przestrzeni.
+  /// tło (otwarta szafa) wypełnia całą szerokość ekranu, tekst i przycisk
+  /// leżą bezpośrednio na zdjęciu, bez karty pod spodem. Umieszczone na
+  /// pustej ścianie między drążkiem a podłogą - Alignment(0, 0.08) to
+  /// wymierzony piksel po pikselu środek tej wolnej przestrzeni.
   ///
   /// SingleChildScrollView (a nie Stack wprost jako body) - inaczej niż w
   /// ListView na ekranie Stylizacji, tu Scaffold.body dostaje ograniczoną
@@ -210,7 +209,7 @@ class _WardrobeScreenState extends State<WardrobeScreen> {
   Widget _emptyWardrobeHero(BuildContext context) {
     return SingleChildScrollView(
       child: Stack(
-        alignment: const Alignment(0, 0.33),
+        alignment: const Alignment(0, 0.08),
         children: [
           Image.asset(
             'assets/images/wardrobe_empty_bg.png',
