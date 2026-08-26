@@ -61,11 +61,11 @@ class _OutfitsScreenState extends State<OutfitsScreen> {
       ),
       // Poziomy margines (16px) NIE jest już własnością ListView (jak
       // wcześniej) - jest teraz doklejany osobno do każdego dziecka, poza
-      // pustym stanem stylizacji. Dzięki temu karta pustego stanu może być
-      // naturalnie pełnej szerokości ekranu (heroImage), bez sztuczek typu
-      // ujemny padding czy OverflowBox (który w tym miejscu - wewnątrz
-      // slivera o nieograniczonej wysokości - powodował, że cały ekran
-      // renderował się jako pusty).
+      // pustym stanem stylizacji. Dzięki temu tło pustego stanu może być
+      // naturalnie pełnej szerokości ekranu, bez sztuczek typu ujemny
+      // padding czy OverflowBox (który w tym miejscu - wewnątrz slivera o
+      // nieograniczonej wysokości - powodował, że cały ekran renderował się
+      // jako pusty).
       body: ListView(
         padding: const EdgeInsets.fromLTRB(0, 12, 0, 40),
         children: [

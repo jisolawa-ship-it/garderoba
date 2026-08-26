@@ -5,7 +5,6 @@ import '../state/wardrobe_provider.dart';
 import '../theme.dart';
 import '../utils.dart';
 import '../widgets/clothing_tag_card.dart';
-import '../widgets/empty_state_card.dart';
 import 'add_item_sheet.dart';
 import 'item_detail_screen.dart';
 
@@ -51,18 +50,7 @@ class _WardrobeScreenState extends State<WardrobeScreen> {
         title: Text('Garderoba', style: displayFont(fontSize: 22)),
       ),
       body: items.isEmpty
-          ? EmptyStateCard(
-              imageAsset: 'assets/images/wardrobe_empty.png',
-              // Zdjęcie wychodzi na pełną szerokość ekranu (bez marginesu),
-              // tekst i przycisk zostają wcięte tak jak wcześniej - stąd
-              // brak tu już zewnętrznego Padding(horizontal: 20), który
-              // wcześniej otaczał całą kartę łącznie ze zdjęciem.
-              heroImage: true,
-              title: 'Twoja szafa jest pusta',
-              subtitle: 'Dodaj pierwsze ubranie i zacznij budować swoją cyfrową garderobę.',
-              buttonLabel: 'Dodaj ubranie',
-              onButtonTap: () => showAddOptionsSheet(context),
-            )
+          ? _emptyWardrobeHero(context)
           : Column(
               children: [
                 Padding(
@@ -204,6 +192,67 @@ class _WardrobeScreenState extends State<WardrobeScreen> {
         ...subcats.map((s) => PopupMenuItem(value: s, child: Text(s))),
       ],
       child: _chipVisual(label, isActive, showCaret: true),
+    );
+  }
+
+  /// Pusty stan Garderoby - ten sam wzorzec co na pustym ekranie Stylizacji:
+  /// tło (otwarta szafa z wieszakiem-sercem na ścianie) wypełnia całą
+  /// szerokość ekranu, tekst i przycisk leżą bezpośrednio na zdjęciu, bez
+  /// karty pod spodem. Umieszczone POD ikoną wieszaka (już narysowaną w
+  /// grafice), na pustej ścianie między nią a podłogą - Alignment(0, 0.33)
+  /// to wymierzony piksel po pikselu środek tej wolnej przestrzeni.
+  ///
+  /// SingleChildScrollView (a nie Stack wprost jako body) - inaczej niż w
+  /// ListView na ekranie Stylizacji, tu Scaffold.body dostaje ograniczoną
+  /// wysokość, co obcięłoby zdjęcie zamiast pozwolić mu przeskalować się do
+  /// naturalnej wysokości (BoxFit.fitWidth potrzebuje nieograniczonej
+  /// wysokości rodzica, żeby zadziałać poprawnie).
+  Widget _emptyWardrobeHero(BuildContext context) {
+    return SingleChildScrollView(
+      child: Stack(
+        alignment: const Alignment(0, 0.33),
+        children: [
+          Image.asset(
+            'assets/images/wardrobe_empty_bg.png',
+            width: double.infinity,
+            fit: BoxFit.fitWidth,
+          ),
+          // 0.62 szerokości ekranu - mieści się w świetle otwartej szafy,
+          // nie wychodzi na drzwiczki ani uchwyty.
+          FractionallySizedBox(
+            widthFactor: 0.62,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text('Twoja szafa jest pusta',
+                    style: displayFont(fontSize: 17), textAlign: TextAlign.center),
+                const SizedBox(height: 6),
+                const Text(
+                  'Dodaj pierwsze ubranie i zacznij budować swoją cyfrową garderobę.',
+                  style: TextStyle(fontSize: 13, color: AppColors.inkSoft, height: 1.4),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 18),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton.icon(
+                    onPressed: () => showAddOptionsSheet(context),
+                    icon: const Icon(Icons.add, size: 16),
+                    label: const Text('Dodaj ubranie', style: TextStyle(fontSize: 13)),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.primary,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadius.pill)),
+                      elevation: 0,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
