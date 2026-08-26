@@ -153,7 +153,7 @@ class _CenterFabState extends State<_CenterFab> {
             color: AppColors.primary,
             boxShadow: [
               BoxShadow(
-                color: AppColors.primary.withOpacity(0.45),
+                color: AppColors.primary.withValues(alpha: 0.45),
                 blurRadius: 16,
                 offset: const Offset(0, 6),
               ),

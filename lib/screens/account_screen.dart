@@ -208,11 +208,11 @@ class AccountScreen extends StatelessWidget {
           ],
           const SizedBox(height: 14),
           _panel(
-            child: Row(
+            child: const Row(
               children: [
-                const Icon(Icons.settings_outlined, size: 20, color: AppColors.inkSoft),
-                const SizedBox(width: 12),
-                const Expanded(
+                Icon(Icons.settings_outlined, size: 20, color: AppColors.inkSoft),
+                SizedBox(width: 12),
+                Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [

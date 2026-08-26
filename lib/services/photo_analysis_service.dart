@@ -1,5 +1,4 @@
 import 'dart:io';
-import 'dart:typed_data';
 import 'dart:ui' as ui;
 import 'package:google_mlkit_image_labeling/google_mlkit_image_labeling.dart';
 import '../models/clothing_item.dart';
@@ -133,9 +132,9 @@ class PhotoAnalysisService {
     for (final c in kClothingColors) {
       if (c.hex == 'multi') continue; // 'multi' nie jest realnym kolorem do dopasowania
       final color = hexToColor(c.hex);
-      final dr = color.red - r;
-      final dg = color.green - g;
-      final db = color.blue - b;
+      final dr = (color.r * 255.0).round() - r;
+      final dg = (color.g * 255.0).round() - g;
+      final db = (color.b * 255.0).round() - b;
       final distance = dr * dr + dg * dg + db * db;
       if (distance < bestDistance) {
         bestDistance = distance;

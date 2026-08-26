@@ -90,9 +90,9 @@ class DashboardScreen extends StatelessWidget {
                 begin: Alignment.topCenter,
                 end: Alignment.bottomCenter,
                 colors: [
-                  AppColors.paper.withOpacity(0.7),
-                  AppColors.paper.withOpacity(0.38),
-                  AppColors.paper.withOpacity(0.0),
+                  AppColors.paper.withValues(alpha: 0.7),
+                  AppColors.paper.withValues(alpha: 0.38),
+                  AppColors.paper.withValues(alpha: 0.0),
                 ],
                 stops: const [0.0, 0.55, 1.0],
               ),
@@ -109,7 +109,7 @@ class DashboardScreen extends StatelessWidget {
                   Text('SZAFNIK',
                       style: displayFont(fontSize: 22, letterSpacing: 4, color: AppColors.primary)),
                   const SizedBox(height: 2),
-                  Text('Twoja garderoba. Twój styl.',
+                  const Text('Twoja garderoba. Twój styl.',
                       style: TextStyle(fontSize: 11, color: AppColors.gold, letterSpacing: 0.5)),
                   const SizedBox(height: 8),
                   _heartDivider(),
@@ -181,12 +181,12 @@ class DashboardScreen extends StatelessWidget {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Container(width: 28, height: 1, color: AppColors.gold.withOpacity(0.6)),
+        Container(width: 28, height: 1, color: AppColors.gold.withValues(alpha: 0.6)),
         const Padding(
           padding: EdgeInsets.symmetric(horizontal: 8),
           child: Icon(Icons.favorite, size: 10, color: AppColors.gold),
         ),
-        Container(width: 28, height: 1, color: AppColors.gold.withOpacity(0.6)),
+        Container(width: 28, height: 1, color: AppColors.gold.withValues(alpha: 0.6)),
       ],
     );
   }
@@ -198,7 +198,7 @@ class DashboardScreen extends StatelessWidget {
         width: 36,
         height: 36,
         decoration: BoxDecoration(
-          color: AppColors.paper.withOpacity(0.75),
+          color: AppColors.paper.withValues(alpha: 0.75),
           shape: BoxShape.circle,
         ),
         child: Icon(icon, size: 18, color: AppColors.ink),
@@ -294,26 +294,26 @@ class DashboardScreen extends StatelessWidget {
         radius: AppRadius.hero,
         child: Row(
           children: [
-            Icon(Icons.calendar_today_outlined, size: 18, color: AppColors.primary),
+            const Icon(Icons.calendar_today_outlined, size: 18, color: AppColors.primary),
             const SizedBox(width: 10),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('DZISIAJ',
+                  const Text('DZISIAJ',
                       style: TextStyle(
                           fontSize: 10, letterSpacing: 1, color: AppColors.primary)),
                   const SizedBox(height: 2),
                   if (outfit != null) ...[
                     Text(outfit.name, style: displayFont(fontSize: 15)),
                     const SizedBox(height: 2),
-                    Text('Zaplanowana stylizacja - dotknij, żeby zobaczyć',
+                    const Text('Zaplanowana stylizacja - dotknij, żeby zobaczyć',
                         style: TextStyle(fontSize: 11, color: AppColors.inkSoft)),
                   ] else ...[
                     Text('Nie masz jeszcze zaplanowanej stylizacji',
                         style: displayFont(fontSize: 15)),
                     const SizedBox(height: 2),
-                    Text('Dotknij, żeby ją stworzyć',
+                    const Text('Dotknij, żeby ją stworzyć',
                         style: TextStyle(fontSize: 11, color: AppColors.inkSoft)),
                   ],
                 ],
@@ -572,13 +572,13 @@ class _TipCarouselState extends State<_TipCarousel> {
         radius: AppRadius.hero,
         child: Row(
           children: [
-            Icon(Icons.eco_outlined, size: 18, color: AppColors.primary),
+            const Icon(Icons.eco_outlined, size: 18, color: AppColors.primary),
             const SizedBox(width: 10),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('WSKAZÓWKA',
+                  const Text('WSKAZÓWKA',
                       style: TextStyle(fontSize: 10, letterSpacing: 1, color: AppColors.primary)),
                   const SizedBox(height: 2),
                   Text(entry.text, style: const TextStyle(fontSize: 13, color: AppColors.ink)),

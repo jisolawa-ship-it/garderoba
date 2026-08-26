@@ -1,4 +1,3 @@
-import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../models/clothing_item.dart';
@@ -528,7 +527,7 @@ class _SummaryScreenState extends State<SummaryScreen> {
               Positioned(
                 top: 0,
                 right: 0,
-                child: Icon(Icons.chevron_right, size: 16, color: AppColors.inkSoft.withOpacity(0.6)),
+                child: Icon(Icons.chevron_right, size: 16, color: AppColors.inkSoft.withValues(alpha: 0.6)),
               ),
           ],
         ),

@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import '../models/clothing_item.dart';
 import '../theme.dart';
-import '../utils.dart';
 import 'clothing_photo_box.dart';
 import 'glass_card.dart';
 

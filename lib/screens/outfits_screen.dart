@@ -172,7 +172,7 @@ class _OutfitsScreenState extends State<OutfitsScreen> {
           const SizedBox(height: 8),
           OutfitCollage(items: its),
           const SizedBox(height: 8),
-          Text('${fmtPrice(total)}',
+          Text(fmtPrice(total),
               style: monoFont(fontSize: 11, color: AppColors.inkSoft)),
           const SizedBox(height: 8),
           Row(
@@ -197,7 +197,7 @@ class _OutfitsScreenState extends State<OutfitsScreen> {
               OutlinedButton(
                 onPressed: () => wardrobe.deleteOutfit(outfit.id),
                 style: OutlinedButton.styleFrom(
-                  side: BorderSide(color: AppColors.wine.withOpacity(0.4)),
+                  side: BorderSide(color: AppColors.wine.withValues(alpha: 0.4)),
                   foregroundColor: AppColors.wine,
                   padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 9),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadius.pill)),

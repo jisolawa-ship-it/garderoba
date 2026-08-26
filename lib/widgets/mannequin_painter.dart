@@ -12,21 +12,21 @@ class MannequinPainter extends CustomPainter {
     // Delikatna poświata za manekinem - dodaje głębi zamiast płaskiego tła.
     final glowPaint = Paint()
       ..shader = RadialGradient(
-        colors: [AppColors.primarySoft.withOpacity(0.4), Colors.transparent],
+        colors: [AppColors.primarySoft.withValues(alpha: 0.4), Colors.transparent],
       ).createShader(
         Rect.fromCircle(center: Offset(w * 0.5, h * 0.32), radius: w * 0.6),
       );
     canvas.drawRect(Rect.fromLTWH(0, 0, w, h), glowPaint);
 
     final line = Paint()
-      ..color = AppColors.gold.withOpacity(0.65)
+      ..color = AppColors.gold.withValues(alpha: 0.65)
       ..style = PaintingStyle.stroke
       ..strokeWidth = 1.8
       ..strokeCap = StrokeCap.round
       ..strokeJoin = StrokeJoin.round;
 
     final fill = Paint()
-      ..color = AppColors.primarySoft.withOpacity(0.4)
+      ..color = AppColors.primarySoft.withValues(alpha: 0.4)
       ..style = PaintingStyle.fill;
 
     final centerX = w * 0.5;
@@ -139,7 +139,7 @@ class MannequinPainter extends CustomPainter {
     // Miękki, rozmyty cień pod stopami zamiast prostej kreski - sugeruje,
     // że manekin "stoi", zamiast płasko wisieć na tle.
     final shadowPaint = Paint()
-      ..color = AppColors.ink.withOpacity(0.10)
+      ..color = AppColors.ink.withValues(alpha: 0.10)
       ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 6);
     final baseY = legEndY + h * 0.02;
     canvas.drawOval(

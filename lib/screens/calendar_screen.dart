@@ -78,12 +78,12 @@ class CalendarScreen extends StatelessWidget {
             Container(width: 1, height: 40, color: AppColors.line),
             const SizedBox(width: 12),
             if (outfit == null)
-              Expanded(
+              const Expanded(
                 child: Row(
                   children: [
-                    const Icon(Icons.add_circle_outline, size: 18, color: AppColors.inkSoft),
-                    const SizedBox(width: 8),
-                    const Text('Zaplanuj stylizację',
+                    Icon(Icons.add_circle_outline, size: 18, color: AppColors.inkSoft),
+                    SizedBox(width: 8),
+                    Text('Zaplanuj stylizację',
                         style: TextStyle(fontSize: 13, color: AppColors.inkSoft)),
                   ],
                 ),

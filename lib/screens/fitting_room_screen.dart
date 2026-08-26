@@ -119,7 +119,7 @@ class _FittingRoomScreenState extends State<FittingRoomScreen> {
   void _placeInRow(List<ClothingItem> items, Size canvasSize) {
     final centerX = canvasSize.width / 2;
     final centerY = canvasSize.height / 2;
-    final offsetStep = 26.0;
+    const offsetStep = 26.0;
     final startOffset = -offsetStep * (items.length - 1) / 2;
     for (var i = 0; i < items.length; i++) {
       _stickers.add(StickerData(
@@ -417,22 +417,22 @@ class _FittingRoomScreenState extends State<FittingRoomScreen> {
                                       child: Container(
                                         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
                                         decoration: BoxDecoration(
-                                          color: AppColors.paper.withOpacity(0.92),
+                                          color: AppColors.paper.withValues(alpha: 0.92),
                                           borderRadius: BorderRadius.circular(AppRadius.pill),
                                           boxShadow: AppColors.cardShadow,
                                         ),
-                                        child: Column(
+                                        child: const Column(
                                           mainAxisSize: MainAxisSize.min,
                                           children: [
-                                            const Icon(Icons.keyboard_double_arrow_right,
+                                            Icon(Icons.keyboard_double_arrow_right,
                                                 size: 15, color: AppColors.primary),
-                                            const SizedBox(height: 6),
+                                            SizedBox(height: 6),
                                             SizedBox(
                                               width: 60,
                                               child: Text(
                                                 'Wybierz ubranie z boku',
                                                 textAlign: TextAlign.center,
-                                                style: const TextStyle(
+                                                style: TextStyle(
                                                   fontSize: 11,
                                                   color: AppColors.ink,
                                                   fontWeight: FontWeight.w500,

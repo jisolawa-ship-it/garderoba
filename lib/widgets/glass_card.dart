@@ -39,9 +39,9 @@ class GlassCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final decoration = BoxDecoration(
-      color: AppColors.paper.withOpacity(fillOpacity),
+      color: AppColors.paper.withValues(alpha: fillOpacity),
       borderRadius: BorderRadius.circular(radius),
-      border: Border.all(color: Colors.white.withOpacity(0.6), width: 1),
+      border: Border.all(color: Colors.white.withValues(alpha: 0.6), width: 1),
       boxShadow: shadow ?? AppColors.softCardShadow,
     );
 

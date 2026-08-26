@@ -139,7 +139,7 @@ class _SuggestionCardState extends State<SuggestionCard> {
                 const SizedBox(width: 8),
                 Expanded(
                   child: DropdownButtonFormField<String>(
-                    value: item.id,
+                    initialValue: item.id,
                     isExpanded: true,
                     decoration: const InputDecoration(
                       isDense: true,
@@ -177,7 +177,7 @@ class _SuggestionCardState extends State<SuggestionCard> {
         }),
         if (leftovers.isNotEmpty)
           DropdownButtonFormField<String>(
-            value: null,
+            initialValue: null,
             isExpanded: true,
             decoration: const InputDecoration(
               isDense: true,

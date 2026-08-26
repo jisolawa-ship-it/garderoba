@@ -357,14 +357,14 @@ class _AddItemSheetState extends State<_AddItemSheet> {
                   color: AppColors.primarySoft,
                   borderRadius: BorderRadius.circular(AppRadius.card),
                 ),
-                child: Row(
+                child: const Row(
                   children: [
-                    const Icon(Icons.info_outline, size: 16, color: AppColors.primary),
-                    const SizedBox(width: 8),
+                    Icon(Icons.info_outline, size: 16, color: AppColors.primary),
+                    SizedBox(width: 8),
                     Expanded(
                       child: Text(
                         'Osiągnęłaś limit ${WardrobeProvider.freeItemLimit} ubrań w darmowej wersji.',
-                        style: const TextStyle(fontSize: 12, color: AppColors.ink),
+                        style: TextStyle(fontSize: 12, color: AppColors.ink),
                       ),
                     ),
                   ],
@@ -396,7 +396,7 @@ class _AddItemSheetState extends State<_AddItemSheet> {
                           if (_analyzing)
                             Container(
                               decoration: BoxDecoration(
-                                color: AppColors.bg.withOpacity(0.75),
+                                color: AppColors.bg.withValues(alpha: 0.75),
                                 borderRadius: BorderRadius.circular(8),
                               ),
                               child: const Center(
@@ -428,7 +428,7 @@ class _AddItemSheetState extends State<_AddItemSheet> {
                                 child: Container(
                                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                                   decoration: BoxDecoration(
-                                    color: AppColors.ink.withOpacity(0.75),
+                                    color: AppColors.ink.withValues(alpha: 0.75),
                                     borderRadius: BorderRadius.circular(20),
                                   ),
                                   child: const Text('Dotknij, żeby zmienić',
@@ -466,14 +466,14 @@ class _AddItemSheetState extends State<_AddItemSheet> {
                   const SizedBox(width: 6),
                   const Icon(Icons.auto_awesome, size: 11, color: AppColors.champagneGold),
                   const SizedBox(width: 2),
-                  Text('wykryto automatycznie',
+                  const Text('wykryto automatycznie',
                       style: TextStyle(fontSize: 10, color: AppColors.champagneGold)),
                 ],
               ],
             ),
             const SizedBox(height: 6),
             DropdownButtonFormField<ClothingCategory>(
-              value: _category,
+              initialValue: _category,
               decoration: _inputDecoration(null),
               items: ClothingCategory.values
                   .map((c) => DropdownMenuItem(
@@ -503,7 +503,7 @@ class _AddItemSheetState extends State<_AddItemSheet> {
             const Text('Podkategoria', style: _labelStyle),
             const SizedBox(height: 6),
             DropdownButtonFormField<String>(
-              value: _useCustomSubcat ? '__custom__' : _subcategory,
+              initialValue: _useCustomSubcat ? '__custom__' : _subcategory,
               decoration: _inputDecoration(null),
               items: [
                 ...subcats.map((s) => DropdownMenuItem(value: s, child: Text(s))),
@@ -536,7 +536,7 @@ class _AddItemSheetState extends State<_AddItemSheet> {
                   const SizedBox(width: 6),
                   const Icon(Icons.auto_awesome, size: 11, color: AppColors.champagneGold),
                   const SizedBox(width: 2),
-                  Text('wykryto automatycznie',
+                  const Text('wykryto automatycznie',
                       style: TextStyle(fontSize: 10, color: AppColors.champagneGold)),
                 ],
               ],

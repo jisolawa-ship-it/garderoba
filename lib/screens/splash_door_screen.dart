@@ -102,7 +102,7 @@ class _SplashDoorScreenState extends State<SplashDoorScreen>
 
   Widget _doorPanel({required bool isLeft}) {
     return Container(
-      decoration: BoxDecoration(boxShadow: AppColors.softCardShadow),
+      decoration: const BoxDecoration(boxShadow: AppColors.softCardShadow),
       child: Image.asset(
         isLeft ? 'assets/images/door_left.png' : 'assets/images/door_right.png',
         fit: BoxFit.cover,

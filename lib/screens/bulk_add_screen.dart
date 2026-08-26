@@ -273,7 +273,7 @@ class _BulkAddScreenState extends State<BulkAddScreen> {
                   width: 84,
                   height: 84,
                   decoration: BoxDecoration(
-                    color: AppColors.ink.withOpacity(0.35),
+                    color: AppColors.ink.withValues(alpha: 0.35),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: const Center(

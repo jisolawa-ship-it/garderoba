@@ -77,7 +77,7 @@ class ItemDetailScreen extends StatelessWidget {
                       child: Container(
                         padding: const EdgeInsets.all(4),
                         decoration: BoxDecoration(
-                          color: AppColors.ink.withOpacity(0.55),
+                          color: AppColors.ink.withValues(alpha: 0.55),
                           shape: BoxShape.circle,
                         ),
                         child: const Icon(Icons.zoom_in, size: 14, color: Colors.white),
@@ -131,15 +131,15 @@ class ItemDetailScreen extends StatelessWidget {
           ),
           const SizedBox(height: 16),
           if (item.needsCompletion)
-            Padding(
-              padding: const EdgeInsets.only(bottom: 12),
+            const Padding(
+              padding: EdgeInsets.only(bottom: 12),
               child: GlassCard(
                 radius: AppRadius.card,
                 child: Row(
                   children: [
-                    const Icon(Icons.edit_note, size: 18, color: AppColors.primary),
-                    const SizedBox(width: 10),
-                    const Expanded(
+                    Icon(Icons.edit_note, size: 18, color: AppColors.primary),
+                    SizedBox(width: 10),
+                    Expanded(
                       child: Text('To ubranie wymaga uzupełnienia nazwy i/lub ceny.',
                           style: TextStyle(fontSize: 12, color: AppColors.ink)),
                     ),

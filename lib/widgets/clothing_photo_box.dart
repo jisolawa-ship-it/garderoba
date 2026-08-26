@@ -67,7 +67,7 @@ class ClothingPhotoBox extends StatelessWidget {
               'assets/images/wardrobe_bg.jpg',
               fit: BoxFit.cover,
             ),
-            Container(color: AppColors.bg.withOpacity(0.4)),
+            Container(color: AppColors.bg.withValues(alpha: 0.4)),
             Center(child: child),
           ],
         ),
