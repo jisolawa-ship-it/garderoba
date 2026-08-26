@@ -47,7 +47,7 @@ flutter:
     - assets/images/wardrobe_bg.jpg
     - assets/images/wardrobe_empty.png
     - assets/images/summary_empty.png
-    - assets/images/outfits_empty.png
+    - assets/images/outfits_empty_bg.png
     - assets/images/calendar_empty.png
     - assets/images/summary_box.jpg
     - assets/images/mannequin_fitting_room.jpg

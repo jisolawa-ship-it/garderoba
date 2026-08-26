@@ -25,15 +25,6 @@ class EmptyStateCard extends StatelessWidget {
   /// tekstu/przycisku jest wtedy liczony przez [heroSideMargin].
   final bool heroImage;
   final double heroSideMargin;
-  /// Opcjonalne ograniczenie wysokości zdjęcia w wariancie "hero" (szerokość
-  /// ÷ wysokość). Gdy podane, zdjęcie nie skaluje się już do swojej pełnej,
-  /// naturalnej wysokości ([BoxFit.fitWidth]) - zamiast tego dostaje sztywną
-  /// wysokość wyliczoną z tej proporcji i [BoxFit.cover] z
-  /// [Alignment.bottomCenter], czyli przycina wyłącznie górę kadru (zawsze
-  /// zachowuje dolną krawędź zdjęcia). Do użycia, gdy samo źródłowe zdjęcie
-  /// ma dużo pustego miejsca u góry (np. nad główną postacią) i całościowy
-  /// kafelek ma się zmieścić na ekranie bez przewijania.
-  final double? heroAspectRatio;
 
   const EmptyStateCard({
     super.key,
@@ -46,7 +37,6 @@ class EmptyStateCard extends StatelessWidget {
     this.compactIcon = Icons.checkroom_outlined,
     this.heroImage = false,
     this.heroSideMargin = 20,
-    this.heroAspectRatio,
   });
 
   @override
@@ -83,19 +73,7 @@ class EmptyStateCard extends StatelessWidget {
             topLeft: Radius.circular(AppRadius.hero),
             topRight: Radius.circular(AppRadius.hero),
           ),
-          child: heroAspectRatio == null
-              ? Image.asset(imageAsset, width: double.infinity, fit: BoxFit.fitWidth)
-              : LayoutBuilder(
-                  builder: (context, constraints) => SizedBox(
-                    width: constraints.maxWidth,
-                    height: constraints.maxWidth / heroAspectRatio!,
-                    child: Image.asset(
-                      imageAsset,
-                      fit: BoxFit.cover,
-                      alignment: Alignment.bottomCenter,
-                    ),
-                  ),
-                ),
+          child: Image.asset(imageAsset, width: double.infinity, fit: BoxFit.fitWidth),
         ),
         const SizedBox(height: 14),
         Padding(

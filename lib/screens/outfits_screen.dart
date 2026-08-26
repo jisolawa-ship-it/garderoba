@@ -6,7 +6,6 @@ import '../services/suggestion_engine.dart';
 import '../state/wardrobe_provider.dart';
 import '../theme.dart';
 import '../utils.dart';
-import '../widgets/empty_state_card.dart';
 import '../widgets/glass_card.dart';
 import '../widgets/outfit_collage.dart';
 import '../widgets/suggestion_card.dart';
@@ -114,25 +113,7 @@ class _OutfitsScreenState extends State<OutfitsScreen> {
             const SizedBox(height: 16),
           ],
           if (wardrobe.outfits.isEmpty)
-            EmptyStateCard(
-              imageAsset: 'assets/images/outfits_empty.png',
-              heroImage: true,
-              heroSideMargin: 16,
-              // outfits_empty.png ma sporo pustej ściany nad głowicą manekina
-              // (żeby przy pełnej wysokości nic z sylwetki się nie ucinało) -
-              // 853/990 przycina tylko ten nadmiar u góry (BoxFit.cover +
-              // Alignment.bottomCenter w EmptyStateCard), dolna krawędź
-              // (stopy stojaka na podłodze) zawsze zostaje w całości, więc
-              // kafelek mieści się na ekranie bez utraty żadnego fragmentu
-              // manekina.
-              heroAspectRatio: 853 / 990,
-              title: 'Brak zapisanych stylizacji',
-              subtitle: wardrobe.items.isEmpty
-                  ? 'Zacznij od dodania pierwszych ubrań do szafy.'
-                  : 'Stwórz swoją pierwszą stylizację w Przymierzalni (zakładka Home).',
-              buttonLabel: wardrobe.items.isEmpty ? 'Dodaj ubranie' : null,
-              onButtonTap: wardrobe.items.isEmpty ? () => showAddOptionsSheet(context) : null,
-            )
+            _emptyOutfitsHero(wardrobe)
           else
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -216,6 +197,68 @@ class _OutfitsScreenState extends State<OutfitsScreen> {
           ),
         ],
       ),
+    );
+  }
+
+  /// Pusty stan Stylizacji - w odróżnieniu od reszty ekranów appki, to NIE
+  /// jest zdjęcie nad kartą, tylko odwrócona kolejność: tło (wnęka z łukiem,
+  /// bez żadnej postaci) wypełnia całą szerokość ekranu, a tekst/przycisk są
+  /// nałożone bezpośrednio na obraz, wyśrodkowane w świetle łuku - stąd
+  /// [Stack] zamiast [EmptyStateCard]. Ułamek 0.54 w [Alignment] to
+  /// wymierzony piksel po pikselu środek wnęki łuku w
+  /// outfits_empty_bg.png (łuk zaczyna się ~18% wysokości, podłoga ~89%).
+  Widget _emptyOutfitsHero(WardrobeProvider wardrobe) {
+    return Stack(
+      alignment: const Alignment(0, 0.08),
+      children: [
+        Image.asset(
+          'assets/images/outfits_empty_bg.png',
+          width: double.infinity,
+          fit: BoxFit.fitWidth,
+        ),
+        // 0.58 szerokości ekranu - tyle, ile ma światło łuku w tym miejscu,
+        // żeby tekst i przycisk nie wychodziły na złoty obrys.
+        FractionallySizedBox(
+          widthFactor: 0.58,
+          child: GlassCard(
+            radius: AppRadius.hero,
+            padding: const EdgeInsets.fromLTRB(20, 20, 20, 20),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text('Brak zapisanych stylizacji',
+                    style: displayFont(fontSize: 16), textAlign: TextAlign.center),
+                const SizedBox(height: 6),
+                Text(
+                  wardrobe.items.isEmpty
+                      ? 'Zacznij od dodania pierwszych ubrań do szafy.'
+                      : 'Stwórz swoją pierwszą stylizację w Przymierzalni (zakładka Home).',
+                  style: const TextStyle(fontSize: 12, color: AppColors.inkSoft, height: 1.4),
+                  textAlign: TextAlign.center,
+                ),
+                if (wardrobe.items.isEmpty) ...[
+                  const SizedBox(height: 16),
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton.icon(
+                      onPressed: () => showAddOptionsSheet(context),
+                      icon: const Icon(Icons.add, size: 16),
+                      label: const Text('Dodaj ubranie', style: TextStyle(fontSize: 13)),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.primary,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadius.pill)),
+                        elevation: 0,
+                      ),
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ),
+      ],
     );
   }
 
