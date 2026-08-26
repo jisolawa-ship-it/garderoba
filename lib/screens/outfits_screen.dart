@@ -104,23 +104,28 @@ class _OutfitsScreenState extends State<OutfitsScreen> {
             const SizedBox(height: 16),
           ],
           if (wardrobe.outfits.isEmpty)
-            // Padding ujemny "wynosi" kartę poza margines 16px, który ListView
-            // nakłada na wszystkie swoje dzieci - tylko tutaj, żeby zdjęcie
-            // mogło wyjść na pełną szerokość ekranu (heroImage), tak jak na
-            // pustym ekranie Garderoby. heroSideMargin: 16 dosuwa z powrotem
-            // tekst/przycisk do tego samego wcięcia co reszta listy.
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: -16),
-              child: EmptyStateCard(
-                imageAsset: 'assets/images/outfits_empty.png',
-                heroImage: true,
-                heroSideMargin: 16,
-                title: 'Brak zapisanych stylizacji',
-                subtitle: wardrobe.items.isEmpty
-                    ? 'Zacznij od dodania pierwszych ubrań do szafy.'
-                    : 'Stwórz swoją pierwszą stylizację w Przymierzalni (zakładka Home).',
-                buttonLabel: wardrobe.items.isEmpty ? 'Dodaj ubranie' : null,
-                onButtonTap: wardrobe.items.isEmpty ? () => showAddOptionsSheet(context) : null,
+            // Padding nie przyjmuje ujemnych wartości (EdgeInsets musi być
+            // nieujemny) - żeby "wynieść" kartę poza margines 16px, który
+            // ListView nakłada na wszystkie swoje dzieci, trzeba dać jej
+            // realnie więcej miejsca niż ma rodzic. OverflowBox pozwala
+            // dziecku zająć szerokość rodzica + 32px (2×16) bez łamania
+            // layoutu reszty listy, wyśrodkowując je (domyślnie), co dokładnie
+            // znosi symetryczny margines listy. heroSideMargin: 16 dosuwa
+            // tekst/przycisk z powrotem do tego samego wcięcia co reszta listy.
+            LayoutBuilder(
+              builder: (context, constraints) => OverflowBox(
+                maxWidth: constraints.maxWidth + 32,
+                child: EmptyStateCard(
+                  imageAsset: 'assets/images/outfits_empty.png',
+                  heroImage: true,
+                  heroSideMargin: 16,
+                  title: 'Brak zapisanych stylizacji',
+                  subtitle: wardrobe.items.isEmpty
+                      ? 'Zacznij od dodania pierwszych ubrań do szafy.'
+                      : 'Stwórz swoją pierwszą stylizację w Przymierzalni (zakładka Home).',
+                  buttonLabel: wardrobe.items.isEmpty ? 'Dodaj ubranie' : null,
+                  onButtonTap: wardrobe.items.isEmpty ? () => showAddOptionsSheet(context) : null,
+                ),
               ),
             )
           else
