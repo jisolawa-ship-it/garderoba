@@ -4,7 +4,6 @@ import '../models/clothing_item.dart';
 import '../state/wardrobe_provider.dart';
 import '../theme.dart';
 import '../utils.dart';
-import '../widgets/empty_state_card.dart';
 import '../widgets/glass_card.dart';
 import 'add_item_sheet.dart';
 
@@ -43,16 +42,7 @@ class _SummaryScreenState extends State<SummaryScreen> {
           elevation: 0,
           foregroundColor: AppColors.ink,
         ),
-        body: Padding(
-          padding: const EdgeInsets.all(20),
-          child: EmptyStateCard(
-            imageAsset: 'assets/images/summary_empty.png',
-            title: 'Jeszcze nie ma czego podsumować',
-            subtitle: 'Dodaj pierwsze ubrania, a zobaczysz tu wartość szafy, koszt noszenia i inne statystyki.',
-            buttonLabel: 'Dodaj ubranie',
-            onButtonTap: () => showAddOptionsSheet(context),
-          ),
-        ),
+        body: _emptySummaryHero(context),
       );
     }
 
@@ -545,6 +535,67 @@ class _SummaryScreenState extends State<SummaryScreen> {
             child: Text(name, style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 13)),
           ),
           Text(meta, style: monoFont(fontSize: 11, color: AppColors.inkSoft)),
+        ],
+      ),
+    );
+  }
+
+  /// Pusty stan Statystyk - ten sam wzorzec co na Garderobie i Stylizacjach:
+  /// tło (wnęka z reliefem "wykresu słupkowego" na cokole) wypełnia całą
+  /// szerokość ekranu, tekst i przycisk leżą bezpośrednio na zdjęciu, bez
+  /// karty pod spodem. Umieszczone NAD reliefem, w pustej górnej części
+  /// łuku - Alignment(0, -0.33) to wymierzony piksel po pikselu środek tej
+  /// wolnej przestrzeni (relief zaczyna się dopiero w dolnej połowie
+  /// zdjęcia).
+  ///
+  /// SingleChildScrollView, tak jak na Garderobie - Scaffold.body dostaje
+  /// tu ograniczoną wysokość, więc bez tego Image nie mógłby przeskalować
+  /// się do naturalnej wysokości (BoxFit.fitWidth potrzebuje nieograniczonej
+  /// wysokości rodzica).
+  Widget _emptySummaryHero(BuildContext context) {
+    return SingleChildScrollView(
+      child: Stack(
+        alignment: const Alignment(0, -0.33),
+        children: [
+          Image.asset(
+            'assets/images/summary_empty_bg.png',
+            width: double.infinity,
+            fit: BoxFit.fitWidth,
+          ),
+          // 0.6 szerokości ekranu - mieści się w świetle łuku, nie wychodzi
+          // na złoty obrys.
+          FractionallySizedBox(
+            widthFactor: 0.6,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text('Jeszcze nie ma czego podsumować',
+                    style: displayFont(fontSize: 17), textAlign: TextAlign.center),
+                const SizedBox(height: 6),
+                const Text(
+                  'Dodaj pierwsze ubrania, a zobaczysz tu wartość szafy, koszt noszenia i inne statystyki.',
+                  style: TextStyle(fontSize: 13, color: AppColors.inkSoft, height: 1.4),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 18),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton.icon(
+                    onPressed: () => showAddOptionsSheet(context),
+                    icon: const Icon(Icons.add, size: 16),
+                    label: const Text('Dodaj ubranie', style: TextStyle(fontSize: 13)),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.primary,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadius.pill)),
+                      elevation: 0,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
         ],
       ),
     );
