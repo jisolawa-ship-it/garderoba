@@ -60,90 +60,90 @@ class _OutfitsScreenState extends State<OutfitsScreen> {
         title: Text('Stylizacje', style: displayFont(fontSize: 26)),
         foregroundColor: AppColors.ink,
       ),
+      // Poziomy margines (16px) NIE jest już własnością ListView (jak
+      // wcześniej) - jest teraz doklejany osobno do każdego dziecka, poza
+      // pustym stanem stylizacji. Dzięki temu karta pustego stanu może być
+      // naturalnie pełnej szerokości ekranu (heroImage), bez sztuczek typu
+      // ujemny padding czy OverflowBox (który w tym miejscu - wewnątrz
+      // slivera o nieograniczonej wysokości - powodował, że cały ekran
+      // renderował się jako pusty).
       body: ListView(
-        padding: const EdgeInsets.fromLTRB(16, 12, 16, 40),
+        padding: const EdgeInsets.fromLTRB(0, 12, 0, 40),
         children: [
           // Sugestie stylizacji wymagają czegoś w szafie, żeby cokolwiek
           // zaproponować - przy pustej Garderobie panel tylko zajmowałby
           // miejsce nad pustym stanem poniżej, więc pokazujemy go dopiero,
           // gdy jest z czego sugerować.
           if (wardrobe.items.isNotEmpty) ...[
-            _panel(
-              title: 'Sugestie stylizacji',
-              trailing: ElevatedButton.icon(
-                onPressed: () => _regenerateSuggestions(wardrobe),
-                icon: const Icon(Icons.shuffle, size: 15),
-                label: const Text('Losuj inne', style: TextStyle(fontSize: 12)),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.primary,
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                  elevation: 0,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadius.pill)),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: _panel(
+                title: 'Sugestie stylizacji',
+                trailing: ElevatedButton.icon(
+                  onPressed: () => _regenerateSuggestions(wardrobe),
+                  icon: const Icon(Icons.shuffle, size: 15),
+                  label: const Text('Losuj inne', style: TextStyle(fontSize: 12)),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primary,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                    elevation: 0,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadius.pill)),
+                  ),
                 ),
+                child: wardrobe.items.length < 2
+                    ? const Text('Dodaj więcej ubrań do szafy, żeby zobaczyć sugestie.',
+                        style: TextStyle(color: AppColors.inkSoft))
+                    : _suggestions.isEmpty
+                        ? const Text(
+                            'Brak nowych propozycji — dodaj więcej ubrań albo zapisz istniejące stylizacje.',
+                            style: TextStyle(color: AppColors.inkSoft))
+                        : Column(
+                            children: _suggestions
+                                .map((s) => SuggestionCard(
+                                      key: ValueKey(s.sortedKey),
+                                      initialCombo: s.items,
+                                      basedOnOutfitName: s.basedOnOutfitName,
+                                      allItems: wardrobe.items,
+                                      onUse: _useSuggestion,
+                                    ))
+                                .toList(),
+                          ),
               ),
-              child: wardrobe.items.length < 2
-                  ? const Text('Dodaj więcej ubrań do szafy, żeby zobaczyć sugestie.',
-                      style: TextStyle(color: AppColors.inkSoft))
-                  : _suggestions.isEmpty
-                      ? const Text(
-                          'Brak nowych propozycji — dodaj więcej ubrań albo zapisz istniejące stylizacje.',
-                          style: TextStyle(color: AppColors.inkSoft))
-                      : Column(
-                          children: _suggestions
-                              .map((s) => SuggestionCard(
-                                    key: ValueKey(s.sortedKey),
-                                    initialCombo: s.items,
-                                    basedOnOutfitName: s.basedOnOutfitName,
-                                    allItems: wardrobe.items,
-                                    onUse: _useSuggestion,
-                                  ))
-                              .toList(),
-                        ),
             ),
             const SizedBox(height: 16),
           ],
           if (wardrobe.outfits.isEmpty)
-            // Padding nie przyjmuje ujemnych wartości (EdgeInsets musi być
-            // nieujemny) - żeby "wynieść" kartę poza margines 16px, który
-            // ListView nakłada na wszystkie swoje dzieci, trzeba dać jej
-            // realnie więcej miejsca niż ma rodzic. OverflowBox pozwala
-            // dziecku zająć szerokość rodzica + 32px (2×16) bez łamania
-            // layoutu reszty listy, wyśrodkowując je (domyślnie), co dokładnie
-            // znosi symetryczny margines listy. heroSideMargin: 16 dosuwa
-            // tekst/przycisk z powrotem do tego samego wcięcia co reszta listy.
-            LayoutBuilder(
-              builder: (context, constraints) => OverflowBox(
-                maxWidth: constraints.maxWidth + 32,
-                child: EmptyStateCard(
-                  imageAsset: 'assets/images/outfits_empty.png',
-                  heroImage: true,
-                  heroSideMargin: 16,
-                  title: 'Brak zapisanych stylizacji',
-                  subtitle: wardrobe.items.isEmpty
-                      ? 'Zacznij od dodania pierwszych ubrań do szafy.'
-                      : 'Stwórz swoją pierwszą stylizację w Przymierzalni (zakładka Home).',
-                  buttonLabel: wardrobe.items.isEmpty ? 'Dodaj ubranie' : null,
-                  onButtonTap: wardrobe.items.isEmpty ? () => showAddOptionsSheet(context) : null,
-                ),
-              ),
+            EmptyStateCard(
+              imageAsset: 'assets/images/outfits_empty.png',
+              heroImage: true,
+              heroSideMargin: 16,
+              title: 'Brak zapisanych stylizacji',
+              subtitle: wardrobe.items.isEmpty
+                  ? 'Zacznij od dodania pierwszych ubrań do szafy.'
+                  : 'Stwórz swoją pierwszą stylizację w Przymierzalni (zakładka Home).',
+              buttonLabel: wardrobe.items.isEmpty ? 'Dodaj ubranie' : null,
+              onButtonTap: wardrobe.items.isEmpty ? () => showAddOptionsSheet(context) : null,
             )
           else
-            Builder(builder: (context) {
-              final reversedOutfits = wardrobe.outfits.reversed.toList();
-              return GridView.builder(
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                itemCount: reversedOutfits.length,
-                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: 2,
-                  mainAxisSpacing: 14,
-                  crossAxisSpacing: 14,
-                  childAspectRatio: 0.48,
-                ),
-                itemBuilder: (context, i) => _savedOutfitCard(wardrobe, reversedOutfits[i]),
-              );
-            }),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Builder(builder: (context) {
+                final reversedOutfits = wardrobe.outfits.reversed.toList();
+                return GridView.builder(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  itemCount: reversedOutfits.length,
+                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: 2,
+                    mainAxisSpacing: 14,
+                    crossAxisSpacing: 14,
+                    childAspectRatio: 0.48,
+                  ),
+                  itemBuilder: (context, i) => _savedOutfitCard(wardrobe, reversedOutfits[i]),
+                );
+              }),
+            ),
         ],
       ),
     );
