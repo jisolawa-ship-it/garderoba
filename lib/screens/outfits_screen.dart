@@ -118,6 +118,14 @@ class _OutfitsScreenState extends State<OutfitsScreen> {
               imageAsset: 'assets/images/outfits_empty.png',
               heroImage: true,
               heroSideMargin: 16,
+              // outfits_empty.png ma sporo pustej ściany nad głowicą manekina
+              // (żeby przy pełnej wysokości nic z sylwetki się nie ucinało) -
+              // 853/990 przycina tylko ten nadmiar u góry (BoxFit.cover +
+              // Alignment.bottomCenter w EmptyStateCard), dolna krawędź
+              // (stopy stojaka na podłodze) zawsze zostaje w całości, więc
+              // kafelek mieści się na ekranie bez utraty żadnego fragmentu
+              // manekina.
+              heroAspectRatio: 853 / 990,
               title: 'Brak zapisanych stylizacji',
               subtitle: wardrobe.items.isEmpty
                   ? 'Zacznij od dodania pierwszych ubrań do szafy.'
