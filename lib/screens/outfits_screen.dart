@@ -106,11 +106,6 @@ class _OutfitsScreenState extends State<OutfitsScreen> {
           if (wardrobe.outfits.isEmpty)
             EmptyStateCard(
               imageAsset: 'assets/images/outfits_empty.png',
-              // outfits_empty.png jest bardzo wysokie/wąskie (proporcje
-              // ~0.46) - bez limitu wysokości sama grafika nie mieściłaby
-              // się na ekranie i trzeba by scrollować, żeby zobaczyć tekst
-              // i przycisk pod spodem.
-              imageHeight: 240,
               title: 'Brak zapisanych stylizacji',
               subtitle: wardrobe.items.isEmpty
                   ? 'Zacznij od dodania pierwszych ubrań do szafy.'
