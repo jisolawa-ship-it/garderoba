@@ -51,15 +51,17 @@ class _WardrobeScreenState extends State<WardrobeScreen> {
         title: Text('Garderoba', style: displayFont(fontSize: 22)),
       ),
       body: items.isEmpty
-          ? Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: EmptyStateCard(
-                imageAsset: 'assets/images/wardrobe_empty.png',
-                title: 'Twoja szafa jest pusta',
-                subtitle: 'Dodaj pierwsze ubranie i zacznij budować swoją cyfrową garderobę.',
-                buttonLabel: 'Dodaj ubranie',
-                onButtonTap: () => showAddOptionsSheet(context),
-              ),
+          ? EmptyStateCard(
+              imageAsset: 'assets/images/wardrobe_empty.png',
+              // Zdjęcie wychodzi na pełną szerokość ekranu (bez marginesu),
+              // tekst i przycisk zostają wcięte tak jak wcześniej - stąd
+              // brak tu już zewnętrznego Padding(horizontal: 20), który
+              // wcześniej otaczał całą kartę łącznie ze zdjęciem.
+              heroImage: true,
+              title: 'Twoja szafa jest pusta',
+              subtitle: 'Dodaj pierwsze ubranie i zacznij budować swoją cyfrową garderobę.',
+              buttonLabel: 'Dodaj ubranie',
+              onButtonTap: () => showAddOptionsSheet(context),
             )
           : Column(
               children: [

@@ -18,6 +18,13 @@ class EmptyStateCard extends StatelessWidget {
   final VoidCallback? onButtonTap;
   final bool compact;
   final IconData compactIcon;
+  /// Wariant "hero" - zdjęcie wychodzi na pełną szerokość ekranu (poza
+  /// margines, który otacza resztę karty), tekst i przycisk zostają wcięte
+  /// tak jak w wariancie domyślnym. Do użycia, gdy ekran NIE owija już
+  /// [EmptyStateCard] w żaden własny Padding poziomy - margines dla
+  /// tekstu/przycisku jest wtedy liczony przez [heroSideMargin].
+  final bool heroImage;
+  final double heroSideMargin;
 
   const EmptyStateCard({
     super.key,
@@ -28,11 +35,14 @@ class EmptyStateCard extends StatelessWidget {
     this.onButtonTap,
     this.compact = false,
     this.compactIcon = Icons.checkroom_outlined,
+    this.heroImage = false,
+    this.heroSideMargin = 20,
   });
 
   @override
   Widget build(BuildContext context) {
     if (compact) return _buildCompact();
+    if (heroImage) return _buildHero();
     // padding: zero - zdjęcie ma być "pełną krawędzią" na górze karty, bez
     // marginesu GlassCard; tekst pod spodem ma własny odstęp. Zdjęcie samo
     // w sobie jest nieprzezroczyste, więc rozmycie "pod spodem" go nie
@@ -45,38 +55,68 @@ class EmptyStateCard extends StatelessWidget {
           Image.asset(imageAsset, width: double.infinity, fit: BoxFit.fitWidth),
           Padding(
             padding: const EdgeInsets.fromLTRB(24, 20, 24, 24),
-            child: Column(
-              children: [
-                Text(title, style: displayFont(fontSize: 17), textAlign: TextAlign.center),
-                const SizedBox(height: 6),
-                Text(
-                  subtitle,
-                  style: const TextStyle(fontSize: 13, color: AppColors.inkSoft, height: 1.4),
-                  textAlign: TextAlign.center,
-                ),
-                if (buttonLabel != null && onButtonTap != null) ...[
-                  const SizedBox(height: 18),
-                  SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton.icon(
-                      onPressed: onButtonTap,
-                      icon: const Icon(Icons.add, size: 18),
-                      label: Text(buttonLabel!),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.primary,
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadius.pill)),
-                        elevation: 0,
-                      ),
-                    ),
-                  ),
-                ],
-              ],
-            ),
+            child: _textSection(),
           ),
         ],
       ),
+    );
+  }
+
+  /// Zdjęcie na pełną szerokość (bez marginesu), zaokrąglone tylko u góry -
+  /// karta z tekstem/przyciskiem pod spodem zostaje wcięta o [heroSideMargin]
+  /// z każdej strony, jak dotychczas.
+  Widget _buildHero() {
+    return Column(
+      children: [
+        ClipRRect(
+          borderRadius: const BorderRadius.only(
+            topLeft: Radius.circular(AppRadius.hero),
+            topRight: Radius.circular(AppRadius.hero),
+          ),
+          child: Image.asset(imageAsset, width: double.infinity, fit: BoxFit.fitWidth),
+        ),
+        const SizedBox(height: 14),
+        Padding(
+          padding: EdgeInsets.symmetric(horizontal: heroSideMargin),
+          child: GlassCard(
+            radius: AppRadius.hero,
+            padding: const EdgeInsets.fromLTRB(24, 20, 24, 24),
+            child: _textSection(),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _textSection() {
+    return Column(
+      children: [
+        Text(title, style: displayFont(fontSize: 17), textAlign: TextAlign.center),
+        const SizedBox(height: 6),
+        Text(
+          subtitle,
+          style: const TextStyle(fontSize: 13, color: AppColors.inkSoft, height: 1.4),
+          textAlign: TextAlign.center,
+        ),
+        if (buttonLabel != null && onButtonTap != null) ...[
+          const SizedBox(height: 18),
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton.icon(
+              onPressed: onButtonTap,
+              icon: const Icon(Icons.add, size: 18),
+              label: Text(buttonLabel!),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.primary,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(vertical: 14),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadius.pill)),
+                elevation: 0,
+              ),
+            ),
+          ),
+        ],
+      ],
     );
   }
 
