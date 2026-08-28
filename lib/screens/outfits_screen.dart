@@ -113,7 +113,14 @@ class _OutfitsScreenState extends State<OutfitsScreen> {
             const SizedBox(height: 16),
           ],
           if (wardrobe.outfits.isEmpty)
-            _emptyOutfitsHero(wardrobe)
+            // Pełne tło z łukiem tylko wtedy, gdy szafa jest naprawdę pusta -
+            // to jedyny sensowny "od czego zacząć" komunikat w tym stanie.
+            // Gdy ubrania już są, "Sugestie stylizacji" nad tym blokiem
+            // pokazują konkretne propozycje - duże zdjęcie pod nimi
+            // wyglądało wtedy na zbędny, urwany dodatek (bez przycisku,
+            // z samym tekstem "stwórz w Przymierzalni"), więc dostaje
+            // zamiast tego jeden, konkretny przycisk.
+            wardrobe.items.isEmpty ? _emptyOutfitsHero() : _suggestOutfitButton()
           else
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -200,14 +207,15 @@ class _OutfitsScreenState extends State<OutfitsScreen> {
     );
   }
 
-  /// Pusty stan Stylizacji - w odróżnieniu od reszty ekranów appki, to NIE
-  /// jest zdjęcie nad kartą, tylko odwrócona kolejność: tło (wnęka z łukiem,
-  /// bez żadnej postaci) wypełnia całą szerokość ekranu, a tekst/przycisk są
+  /// Pusty stan Stylizacji, TYLKO gdy szafa też jest pusta (patrz miejsce
+  /// wywołania) - w odróżnieniu od reszty ekranów appki, to NIE jest
+  /// zdjęcie nad kartą, tylko odwrócona kolejność: tło (wnęka z łukiem, bez
+  /// żadnej postaci) wypełnia całą szerokość ekranu, a tekst/przycisk są
   /// nałożone bezpośrednio na obraz, wyśrodkowane w świetle łuku - stąd
-  /// [Stack] zamiast [EmptyStateCard]. Ułamek 0.54 w [Alignment] to
+  /// [Stack] zamiast [EmptyStateCard]. Ułamek 0.08 w [Alignment] to
   /// wymierzony piksel po pikselu środek wnęki łuku w
   /// outfits_empty_bg.png (łuk zaczyna się ~18% wysokości, podłoga ~89%).
-  Widget _emptyOutfitsHero(WardrobeProvider wardrobe) {
+  Widget _emptyOutfitsHero() {
     return Stack(
       alignment: const Alignment(0, 0.08),
       children: [
@@ -228,35 +236,66 @@ class _OutfitsScreenState extends State<OutfitsScreen> {
               Text('Brak zapisanych stylizacji',
                   style: displayFont(fontSize: 17), textAlign: TextAlign.center),
               const SizedBox(height: 6),
-              Text(
-                wardrobe.items.isEmpty
-                    ? 'Zacznij od dodania pierwszych ubrań do szafy.'
-                    : 'Stwórz swoją pierwszą stylizację w Przymierzalni (zakładka Home).',
-                style: const TextStyle(fontSize: 13, color: AppColors.inkSoft, height: 1.4),
+              const Text(
+                'Zacznij od dodania pierwszych ubrań do szafy.',
+                style: TextStyle(fontSize: 13, color: AppColors.inkSoft, height: 1.4),
                 textAlign: TextAlign.center,
               ),
-              if (wardrobe.items.isEmpty) ...[
-                const SizedBox(height: 18),
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton.icon(
-                    onPressed: () => showAddOptionsSheet(context),
-                    icon: const Icon(Icons.add, size: 16),
-                    label: const Text('Dodaj ubranie', style: TextStyle(fontSize: 13)),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.primary,
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadius.pill)),
-                      elevation: 0,
-                    ),
+              const SizedBox(height: 18),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton.icon(
+                  onPressed: () => showAddOptionsSheet(context),
+                  icon: const Icon(Icons.add, size: 16),
+                  label: const Text('Dodaj ubranie', style: TextStyle(fontSize: 13)),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primary,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadius.pill)),
+                    elevation: 0,
                   ),
                 ),
-              ],
+              ),
             ],
           ),
         ),
       ],
+    );
+  }
+
+  /// Gdy szafa NIE jest pusta, ale nie ma jeszcze zapisanej stylizacji -
+  /// "Sugestie stylizacji" nad tym miejscem już pokazują konkretne
+  /// propozycje, więc zamiast dużego zdjęcia z łukiem wystarczy jeden,
+  /// wyraźny przycisk, który od razu otwiera Przymierzalnię z pierwszą
+  /// sugestią (albo pustym płótnem, jeśli sugestii jeszcze nie ma - np.
+  /// przy tylko jednym ubraniu w szafie).
+  Widget _suggestOutfitButton() {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 28),
+        child: ElevatedButton.icon(
+          onPressed: () {
+            if (_suggestions.isNotEmpty) {
+              final s = _suggestions.first;
+              _useSuggestion(s.items, s.basedOnOutfitName ?? '');
+            } else {
+              Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const FittingRoomScreen()),
+              );
+            }
+          },
+          icon: const Icon(Icons.auto_awesome, size: 18),
+          label: const Text('Zasugeruj stylizację'),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: AppColors.primary,
+            foregroundColor: Colors.white,
+            padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 14),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadius.pill)),
+            elevation: 0,
+          ),
+        ),
+      ),
     );
   }
 
