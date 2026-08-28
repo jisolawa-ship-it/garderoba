@@ -69,6 +69,15 @@ class SuggestionEngine {
     return copy;
   }
 
+  /// Jak _shuffled, ale z lekkim naciskiem na rzadko/nigdy nienoszone
+  /// ubrania - wciąż losowe (nie zawsze te same rzeczy na górze), ale
+  /// statystycznie częściej wypychające zapomniane ubrania w stronę sugestii.
+  static List<ClothingItem> _weightedOrder(List<ClothingItem> list) {
+    final copy = _shuffled(list);
+    copy.sort((a, b) => _wearBonus(b).compareTo(_wearBonus(a)));
+    return copy;
+  }
+
   static _History _buildHistory(List<ClothingItem> items, List<Outfit> outfits) {
     final itemPairs = <String, int>{};
     final subcatPairs = <String, int>{};
@@ -106,7 +115,19 @@ class SuggestionEngine {
     final sKey = ([_subcatKey(a), _subcatKey(b)]..sort()).join('|');
     score += (history.itemPairs[pKey] ?? 0) * 5;
     score += (history.subcatPairs[sKey] ?? 0) * 2;
+    // Premiujemy ubrania rzadko/nigdy nienoszone - appka ma aktywnie pomagać
+    // "odkurzać" zapomniane rzeczy w szafie, nie tylko dobierać kolorystycznie.
+    score += _wearBonus(a) + _wearBonus(b);
     return score;
+  }
+
+  /// Im rzadziej noszone ubranie, tym większy bonus w sugestiach - zero
+  /// noszeń to największa premia (prawdziwe "martwe" ubranie, najbardziej
+  /// warte przypomnienia), powyżej kilku noszeń bonus znika całkowicie.
+  static double _wearBonus(ClothingItem item) {
+    if (item.wears == 0) return 3;
+    if (item.wears <= 3) return 1.5;
+    return 0;
   }
 
   static ClothingItem? _bestMatch(
@@ -123,38 +144,7 @@ class SuggestionEngine {
     return shuffled.first;
   }
 
-  static List<SuggestionCombo> _variationsFromSavedOutfits(
-    List<ClothingItem> items,
-    List<Outfit> outfits,
-    Set<String> savedSetKeys,
-  ) {
-    final variations = <SuggestionCombo>[];
-    for (final outfit in _shuffled(outfits)) {
-      final its = outfit.itemIds
-          .map((id) => _findById(items, id))
-          .whereType<ClothingItem>()
-          .toList();
-      if (its.isEmpty) continue;
-      final idxToSwap = _rand.nextInt(its.length);
-      final target = its[idxToSwap];
-      final alternatives = items
-          .where((i) => i.category == target.category && i.id != target.id)
-          .toList();
-      if (alternatives.isEmpty) continue;
-      final alt = alternatives[_rand.nextInt(alternatives.length)];
-      final combo = List<ClothingItem>.from(its);
-      combo[idxToSwap] = alt;
-      final key = (combo.map((i) => i.id).toList()..sort()).join('|');
-      if (savedSetKeys.contains(key)) continue;
-      variations.add(SuggestionCombo(combo, basedOnOutfitName: outfit.name));
-    }
-    return variations;
-  }
-
-  /// Generuje do [count] propozycji stylizacji. Priorytet mają warianty
-  /// już zapisanych stylizacji (z jedną podmienioną rzeczą); gdy tych
-  /// brakuje, dogenerowywane są świeże kombinacje na bazie dopasowania
-  /// kolorów i wcześniejszych powiązań między ubraniami.
+  /// Generuje do [count] propozycji stylizacji.
   static List<SuggestionCombo> generate(
     List<ClothingItem> items,
     List<Outfit> outfits, {
@@ -183,14 +173,15 @@ class SuggestionEngine {
       results.add(SuggestionCombo(combo, basedOnOutfitName: basedOn));
     }
 
-    // 1. Warianty zapisanych stylizacji - priorytet
-    for (final v in _variationsFromSavedOutfits(items, outfits, savedSetKeys).take(4)) {
-      tryAdd(v.items, basedOn: v.basedOnOutfitName);
-    }
+    // Zawsze świeże kombinacje z całej szafy - appka nigdy nie "podmienia"
+    // pojedynczej rzeczy w już zapisanej, przemyślanej stylizacji. Kolejność
+    // przetasowana z lekkim naciskiem na rzadko/nigdy nienoszone ubrania jako
+    // punkt startowy (nie tylko przy dobieraniu reszty), żeby faktycznie
+    // pomagać "odkurzać" zapomniane rzeczy, a nie tylko dobierać kolory.
 
-    // 2. Świeże kombinacje z sukienkami
+    // 1. Świeże kombinacje z sukienkami
     if (results.length < count) {
-      for (final dress in _shuffled(dresses).take(2)) {
+      for (final dress in _weightedOrder(dresses).take(2)) {
         final combo = <ClothingItem>[dress];
         final sh = _bestMatch(shoes, dress, combo.map((i) => i.id).toList(), history);
         if (sh != null) combo.add(sh);
@@ -206,9 +197,9 @@ class SuggestionEngine {
       }
     }
 
-    // 3. Świeże kombinacje góra + dół
+    // 2. Świeże kombinacje góra + dół
     if (results.length < count) {
-      for (final top in _shuffled(tops).take(min(tops.length, 5))) {
+      for (final top in _weightedOrder(tops).take(min(tops.length, 5))) {
         if (results.length >= count + 2) break;
         final combo = <ClothingItem>[top];
         final bottom = _bestMatch(bottoms, top, combo.map((i) => i.id).toList(), history);
