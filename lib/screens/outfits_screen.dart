@@ -191,6 +191,17 @@ class _OutfitsScreenState extends State<OutfitsScreen> {
               ),
               const SizedBox(width: 6),
               OutlinedButton(
+                onPressed: () => _proposeAlternative(wardrobe, outfit),
+                style: OutlinedButton.styleFrom(
+                  side: BorderSide(color: AppColors.gold.withValues(alpha: 0.5)),
+                  foregroundColor: AppColors.gold,
+                  padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 9),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadius.pill)),
+                ),
+                child: const Icon(Icons.shuffle, size: 16),
+              ),
+              const SizedBox(width: 6),
+              OutlinedButton(
                 onPressed: () => wardrobe.deleteOutfit(outfit.id),
                 style: OutlinedButton.styleFrom(
                   side: BorderSide(color: AppColors.wine.withValues(alpha: 0.4)),
@@ -201,6 +212,87 @@ class _OutfitsScreenState extends State<OutfitsScreen> {
                 child: const Icon(Icons.delete_outline, size: 16),
               ),
             ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Proponuje alternatywę dla konkretnej, już zapisanej stylizacji -
+  /// zamienia jeden element na lepiej dopasowany zamiennik i pokazuje to od
+  /// razu jako wyskakujące okno z podglądem, bez otwierania Przymierzalni.
+  /// Zapisanie tworzy NOWĄ, osobną stylizację - oryginał zostaje nietknięty.
+  void _proposeAlternative(WardrobeProvider wardrobe, Outfit outfit) {
+    final result = SuggestionEngine.proposeAlternative(
+      outfit: outfit,
+      allItems: wardrobe.items,
+      outfits: wardrobe.outfits,
+    );
+    if (result == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Brak dostępnej alternatywy - potrzeba więcej ubrań w tej kategorii.'),
+        ),
+      );
+      return;
+    }
+
+    showDialog(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        backgroundColor: AppColors.paper,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadius.hero)),
+        title: Text('Alternatywa dla „${outfit.name}”', style: displayFont(fontSize: 16)),
+        content: SizedBox(
+          width: 220,
+          child: OutfitCollage(items: result.items),
+        ),
+        actionsAlignment: MainAxisAlignment.spaceBetween,
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('Anuluj', style: TextStyle(color: AppColors.inkSoft)),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.pop(dialogContext);
+              _proposeAlternative(wardrobe, outfit);
+            },
+            child: const Text('Losuj inną', style: TextStyle(color: AppColors.gold)),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              // Elementy bez zmian zachowują dokładną pozycję z oryginału;
+              // nowy element przejmuje miejsce tego, który zastąpił.
+              final newLayout = <String, OutfitItemLayout>{};
+              final oldLayout = outfit.layout;
+              for (final item in result.items) {
+                if (item.id == result.addedItemId) {
+                  final removedLayout = oldLayout?[result.removedItemId];
+                  if (removedLayout != null) newLayout[item.id] = removedLayout;
+                } else {
+                  final same = oldLayout?[item.id];
+                  if (same != null) newLayout[item.id] = same;
+                }
+              }
+              await wardrobe.addOutfit(
+                '${outfit.name} (alternatywa)',
+                result.items.map((i) => i.id).toList(),
+                layout: newLayout.isEmpty ? null : newLayout,
+              );
+              if (!dialogContext.mounted) return;
+              Navigator.pop(dialogContext);
+              if (!mounted) return;
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Zapisano jako nową stylizację.')),
+              );
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.primary,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadius.pill)),
+            ),
+            child: const Text('Zapisz jako nową'),
           ),
         ],
       ),

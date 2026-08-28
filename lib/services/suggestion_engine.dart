@@ -26,6 +26,56 @@ class _History {
 class SuggestionEngine {
   static final Random _rand = Random();
 
+  /// Proponuje alternatywę dla JUŻ ZAPISANEJ stylizacji - zamienia jeden,
+  /// losowo wybrany element na najlepiej pasujący (wg tej samej punktacji
+  /// kolor+historia+rzadkość noszenia) zamiennik z tej samej kategorii.
+  ///
+  /// W przeciwieństwie do usuniętego wcześniej automatycznego mechanizmu
+  /// "wariantów" w ogólnych sugestiach - to wywoływane WYŁĄCZNIE na wyraźne
+  /// żądanie (dotknięcie konkretnego przycisku na konkretnej karcie), nigdy
+  /// automatycznie, i nigdy nie nadpisuje oryginalnej stylizacji (appka
+  /// zapisuje wynik jako nową, osobną stylizację).
+  static ({List<ClothingItem> items, String removedItemId, String addedItemId})?
+      proposeAlternative({
+    required Outfit outfit,
+    required List<ClothingItem> allItems,
+    required List<Outfit> outfits,
+  }) {
+    final current = outfit.itemIds
+        .map((id) => _findById(allItems, id))
+        .whereType<ClothingItem>()
+        .toList();
+    if (current.length < 2) return null;
+
+    final history = _buildHistory(allItems, outfits);
+    final idxToSwap = _rand.nextInt(current.length);
+    final target = current[idxToSwap];
+    final others = List<ClothingItem>.from(current)..removeAt(idxToSwap);
+
+    final pool = allItems
+        .where((i) => i.category == target.category && i.id != target.id)
+        .toList();
+    if (pool.isEmpty) return null;
+
+    ClothingItem? best;
+    double bestScore = -1;
+    for (final candidate in _shuffled(pool)) {
+      var score = 0.0;
+      for (final o in others) {
+        score += _pairScore(o, candidate, history);
+      }
+      if (score > bestScore) {
+        bestScore = score;
+        best = candidate;
+      }
+    }
+    if (best == null) return null;
+
+    final combo = List<ClothingItem>.from(current);
+    combo[idxToSwap] = best;
+    return (items: combo, removedItemId: target.id, addedItemId: best.id);
+  }
+
   /// Szuka najlepiej pasującego ubrania z danej kategorii do tego, co już
   /// jest wybrane (np. na manekinie w Przymierzalni) - ta sama logika
   /// dopasowania kolorystycznego + historii noszenia co przy zwykłych
