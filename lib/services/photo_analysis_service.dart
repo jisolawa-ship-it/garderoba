@@ -101,7 +101,14 @@ class PhotoAnalysisService {
     final marginX = (width * 0.2).round();
     final marginY = (height * 0.12).round();
 
-    int rSum = 0, gSum = 0, bSum = 0, count = 0;
+    // Każdy próbkowany piksel "głosuje" na najbliższy kolor z palety appki,
+    // zamiast (jak wcześniej) uśredniać surowe RGB wszystkich pikseli razem.
+    // Uśrednianie miesza kolor ubrania z widocznym tłem/dodatkami w jedną,
+    // rozmytą barwę, która często nie przypomina żadnego z nich (np. szary
+    // z niebieskiej sukienki na kolorowym tle) - głosowanie jest odporne na
+    // tło w kadrze, dopóki samo ubranie zajmuje większą część próbkowanej,
+    // środkowej strefy niż to, co jest za nim.
+    final votes = <String, int>{};
     for (int y = marginY; y < height - marginY; y++) {
       for (int x = marginX; x < width - marginX; x++) {
         final i = (y * width + x) * 4;
@@ -111,19 +118,13 @@ class PhotoAnalysisService {
         // nadal pomijamy prawie-białe piksele, gdyby akurat trafiło się
         // czyste, jasne tło nawet w tej środkowej strefie
         if (r > 235 && g > 235 && b > 235) continue;
-        rSum += r;
-        gSum += g;
-        bSum += b;
-        count++;
+        final hex = _nearestPaletteColor(r.toDouble(), g.toDouble(), b.toDouble());
+        votes[hex] = (votes[hex] ?? 0) + 1;
       }
     }
-    if (count == 0) return null;
+    if (votes.isEmpty) return null;
 
-    final avgR = rSum / count;
-    final avgG = gSum / count;
-    final avgB = bSum / count;
-
-    return _nearestPaletteColor(avgR, avgG, avgB);
+    return votes.entries.reduce((a, b) => a.value >= b.value ? a : b).key;
   }
 
   String _nearestPaletteColor(double r, double g, double b) {

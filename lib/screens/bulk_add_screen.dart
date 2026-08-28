@@ -373,17 +373,24 @@ class _BulkAddScreenState extends State<BulkAddScreen> {
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(AppRadius.hero)),
       ),
-      builder: (ctx) => Padding(
-        padding: const EdgeInsets.all(20),
-        child: ColorPickerGrid(
-          selectedHex: draft.colorHex,
-          onChanged: (hex) {
-            setState(() {
-              draft.colorHex = hex;
-              draft.autoFilled = false;
-            });
-            Navigator.pop(ctx);
-          },
+      // SafeArea(top: false) - bez tego ostatni rząd kółek renderował się
+      // pod systemowym paskiem nawigacji (na telefonach z fizycznymi/
+      // ekranowymi przyciskami nawigacji, nie gestami) i nie dało się go
+      // dotknąć, mimo że był częściowo widoczny.
+      builder: (ctx) => SafeArea(
+        top: false,
+        child: Padding(
+          padding: const EdgeInsets.all(20),
+          child: ColorPickerGrid(
+            selectedHex: draft.colorHex,
+            onChanged: (hex) {
+              setState(() {
+                draft.colorHex = hex;
+                draft.autoFilled = false;
+              });
+              Navigator.pop(ctx);
+            },
+          ),
         ),
       ),
     );
