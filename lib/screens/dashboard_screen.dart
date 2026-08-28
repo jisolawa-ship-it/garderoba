@@ -6,12 +6,37 @@ import '../models/clothing_item.dart';
 import '../state/nav_controller.dart';
 import '../state/wardrobe_provider.dart';
 import '../theme.dart';
+import '../widgets/clothing_photo_box.dart';
 import '../widgets/glass_card.dart';
 import 'add_item_sheet.dart';
 import 'bulk_add_screen.dart';
 import 'fitting_room_screen.dart';
 import 'item_detail_screen.dart';
 import 'summary_screen.dart';
+
+/// Mała etykieta z ikoną NAD kartą (nie wewnątrz niej) - "DZISIAJ" nad
+/// kartą planu dnia, "WSKAZÓWKI" nad karuzelą wskazówek. Top-level (nie
+/// metoda na [DashboardScreen]), żeby korzystał z niej też stan karuzeli
+/// ([_TipCarouselState]) w tym samym pliku.
+Widget _sectionEyebrow({required IconData icon, required String label}) {
+  return Padding(
+    padding: const EdgeInsets.only(left: 4),
+    child: Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(icon, size: 13, color: AppColors.primary),
+        const SizedBox(width: 6),
+        Text(label,
+            style: const TextStyle(
+              fontSize: 10,
+              letterSpacing: 1,
+              color: AppColors.primary,
+              fontWeight: FontWeight.w600,
+            )),
+      ],
+    ),
+  );
+}
 
 class DashboardScreen extends StatelessWidget {
   const DashboardScreen({super.key});
@@ -37,7 +62,7 @@ class DashboardScreen extends StatelessWidget {
           bottom: 96 + MediaQuery.of(context).padding.bottom + 24,
         ),
         children: [
-          _hero(context, firstName),
+          _hero(context, wardrobe, firstName),
           _greeting(firstName),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -63,7 +88,8 @@ class DashboardScreen extends StatelessWidget {
     return displayName.trim().split(' ').first;
   }
 
-  Widget _hero(BuildContext context, String firstName) {
+  Widget _hero(BuildContext context, WardrobeProvider wardrobe, String firstName) {
+    final hasIncomplete = wardrobe.items.any((i) => i.needsCompletion);
     return SizedBox(
       height: 430,
       width: double.infinity,
@@ -128,20 +154,27 @@ class DashboardScreen extends StatelessWidget {
             child: SafeArea(
               bottom: false,
               child: Padding(
-                padding: const EdgeInsets.only(top: 8, right: 8),
+                padding: const EdgeInsets.symmetric(horizontal: 8).copyWith(top: 8),
                 child: Row(
-                  mainAxisAlignment: MainAxisAlignment.end,
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
+                    // Skrót do Kalendarza/Podsumowania - dawniej pod "...", ale
+                    // to menu skrótów, nie "więcej opcji przy tym elemencie",
+                    // więc hamburger po lewej pasuje do niego lepiej.
+                    _heroIconButton(
+                      icon: Icons.menu,
+                      onTap: () => _showQuickMenu(context),
+                    ),
+                    // Czerwona kropka pojawia się tylko wtedy, gdy jest coś
+                    // realnie do zrobienia (te same, niedokończone ubrania co
+                    // w banerze niżej) - nigdy jako czysto dekoracyjna plakietka
+                    // bez pokrycia w faktycznym stanie appki.
                     _heroIconButton(
                       icon: Icons.notifications_none_rounded,
+                      badge: hasIncomplete,
                       onTap: () => ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(content: Text('Powiadomienia pojawią się tutaj w przyszłości.')),
                       ),
-                    ),
-                    const SizedBox(width: 8),
-                    _heroIconButton(
-                      icon: Icons.more_horiz,
-                      onTap: () => _showQuickMenu(context),
                     ),
                   ],
                 ),
@@ -160,18 +193,31 @@ class DashboardScreen extends StatelessWidget {
   Widget _greeting(String firstName) {
     return Padding(
       padding: const EdgeInsets.fromLTRB(24, 22, 24, 0),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
+      child: Column(
         children: [
-          Flexible(
-            child: Text(
-              firstName.isEmpty ? 'Dzień dobry' : 'Dzień dobry, $firstName',
-              style: displayFont(fontSize: 24),
-              overflow: TextOverflow.ellipsis,
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Flexible(
+                child: Text(
+                  firstName.isEmpty ? 'Dzień dobry' : 'Dzień dobry, $firstName',
+                  style: displayFont(fontSize: 24),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              const SizedBox(width: 6),
+              const Icon(Icons.favorite_border, size: 18, color: AppColors.primary),
+            ],
+          ),
+          const SizedBox(height: 4),
+          const Text(
+            'Gotowa stworzyć kolejną stylizację?',
+            style: TextStyle(
+              fontSize: 13,
+              fontStyle: FontStyle.italic,
+              color: AppColors.inkSoft,
             ),
           ),
-          const SizedBox(width: 6),
-          const Icon(Icons.favorite_border, size: 18, color: AppColors.primary),
         ],
       ),
     );
@@ -191,17 +237,36 @@ class DashboardScreen extends StatelessWidget {
     );
   }
 
-  Widget _heroIconButton({required IconData icon, required VoidCallback onTap}) {
+  Widget _heroIconButton({required IconData icon, required VoidCallback onTap, bool badge = false}) {
     return GestureDetector(
       onTap: onTap,
-      child: Container(
-        width: 36,
-        height: 36,
-        decoration: BoxDecoration(
-          color: AppColors.paper.withValues(alpha: 0.75),
-          shape: BoxShape.circle,
-        ),
-        child: Icon(icon, size: 18, color: AppColors.ink),
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          Container(
+            width: 36,
+            height: 36,
+            decoration: BoxDecoration(
+              color: AppColors.paper.withValues(alpha: 0.75),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(icon, size: 18, color: AppColors.ink),
+          ),
+          if (badge)
+            Positioned(
+              top: -1,
+              right: -1,
+              child: Container(
+                width: 11,
+                height: 11,
+                decoration: BoxDecoration(
+                  color: AppColors.wine,
+                  shape: BoxShape.circle,
+                  border: Border.all(color: AppColors.paper, width: 1.5),
+                ),
+              ),
+            ),
+        ],
       ),
     );
   }
@@ -287,40 +352,91 @@ class DashboardScreen extends StatelessWidget {
     final today = dateOnly(DateTime.now());
     final entry = wardrobe.entryForDate(today);
     final outfit = entry != null ? wardrobe.findOutfit(entry.outfitId) : null;
+    final outfitItems = outfit != null
+        ? outfit.itemIds.map((id) => wardrobe.findItem(id)).whereType<ClothingItem>().toList()
+        : const <ClothingItem>[];
 
     return GestureDetector(
       onTap: () => context.read<NavTabController>().goTo(NavTabs.calendar),
-      child: GlassCard(
-        radius: AppRadius.hero,
-        child: Row(
-          children: [
-            const Icon(Icons.calendar_today_outlined, size: 18, color: AppColors.primary),
-            const SizedBox(width: 10),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text('DZISIAJ',
-                      style: TextStyle(
-                          fontSize: 10, letterSpacing: 1, color: AppColors.primary)),
-                  const SizedBox(height: 2),
-                  if (outfit != null) ...[
-                    Text(outfit.name, style: displayFont(fontSize: 15)),
-                    const SizedBox(height: 2),
-                    const Text('Zaplanowana stylizacja - dotknij, żeby zobaczyć',
-                        style: TextStyle(fontSize: 11, color: AppColors.inkSoft)),
-                  ] else ...[
-                    Text('Nie masz jeszcze zaplanowanej stylizacji',
-                        style: displayFont(fontSize: 15)),
-                    const SizedBox(height: 2),
-                    const Text('Dotknij, żeby ją stworzyć',
-                        style: TextStyle(fontSize: 11, color: AppColors.inkSoft)),
-                  ],
-                ],
-              ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _sectionEyebrow(icon: Icons.calendar_today_outlined, label: 'DZISIAJ'),
+          const SizedBox(height: 8),
+          GlassCard(
+            radius: AppRadius.hero,
+            child: Row(
+              children: [
+                _miniOutfitThumb(outfitItems),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      if (outfit != null) ...[
+                        Text(outfit.name, style: displayFont(fontSize: 15)),
+                        const SizedBox(height: 2),
+                        const Text('Zaplanowana stylizacja - dotknij, żeby zobaczyć',
+                            style: TextStyle(fontSize: 11, color: AppColors.inkSoft)),
+                      ] else ...[
+                        Text('Nie masz jeszcze zaplanowanej stylizacji',
+                            style: displayFont(fontSize: 15)),
+                        const SizedBox(height: 2),
+                        const Text('Dotknij, żeby ją stworzyć',
+                            style: TextStyle(fontSize: 11, color: AppColors.inkSoft)),
+                      ],
+                    ],
+                  ),
+                ),
+                const Icon(Icons.chevron_right, color: AppColors.inkSoft),
+              ],
             ),
-            const Icon(Icons.chevron_right, color: AppColors.inkSoft),
-          ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Miniaturka planu dnia - realne zdjęcia ubrań z zaplanowanej stylizacji
+  /// (do 4, w siatce 2x2), albo neutralna ikonka kalendarza, gdy nic jeszcze
+  /// nie jest zaplanowane. Nigdy przykładowe/nierzeczywiste zdjęcie.
+  Widget _miniOutfitThumb(List<ClothingItem> items) {
+    const size = 56.0;
+    if (items.isEmpty) {
+      return Container(
+        width: size,
+        height: size,
+        decoration: BoxDecoration(
+          color: AppColors.primarySoft,
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: const Icon(Icons.calendar_today_outlined, size: 20, color: AppColors.primary),
+      );
+    }
+    if (items.length == 1) {
+      return ClipRRect(
+        borderRadius: BorderRadius.circular(12),
+        child: SizedBox(
+          width: size,
+          height: size,
+          child: ClothingPhotoBox(item: items.first, height: size, borderRadius: 12),
+        ),
+      );
+    }
+    final shown = items.take(4).toList();
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(12),
+      child: SizedBox(
+        width: size,
+        height: size,
+        child: GridView.count(
+          crossAxisCount: 2,
+          physics: const NeverScrollableScrollPhysics(),
+          mainAxisSpacing: 2,
+          crossAxisSpacing: 2,
+          children: shown
+              .map((i) => ClothingPhotoBox(item: i, height: size / 2, borderRadius: 4))
+              .toList(),
         ),
       ),
     );
@@ -363,10 +479,12 @@ class DashboardScreen extends StatelessWidget {
       tips.add(_TipEntry(
         '${mostWornItem.name} to Twój najczęściej noszony element (${mostWornItem.wears}×).',
         // Wskazówka dotyczy jednego, konkretnego ubrania - prowadzi wprost
-        // do jego Szczegółów, nie do ogólnego Podsumowania.
+        // do jego Szczegółów, nie do ogólnego Podsumowania, i pokazuje jego
+        // realne zdjęcie zamiast ogólnej ikonki.
         (ctx) => Navigator.of(ctx).push(MaterialPageRoute(
           builder: (_) => ItemDetailScreen(itemId: mostWornItem.id),
         )),
+        item: mostWornItem,
       ));
 
       final withCost = worn.where((i) => i.costPerWear != null).toList();
@@ -379,6 +497,7 @@ class DashboardScreen extends StatelessWidget {
           (ctx) => Navigator.of(ctx).push(MaterialPageRoute(
             builder: (_) => ItemDetailScreen(itemId: bestItem.id),
           )),
+          item: bestItem,
         ));
       }
     }
@@ -478,11 +597,16 @@ class DashboardScreen extends StatelessWidget {
   }
 }
 
-/// Jedna wskazówka - treść + gdzie ma prowadzić po dotknięciu.
+/// Jedna wskazówka - treść + gdzie ma prowadzić po dotknięciu. [item],
+/// jeśli podany, to konkretne ubranie, którego wskazówka dotyczy (np.
+/// "najczęściej noszone") - karta pokazuje wtedy jego realne zdjęcie
+/// zamiast ogólnej ikonki. Nie każda wskazówka ma taki naturalny punkt
+/// odniesienia (np. "wartość całej szafy") - wtedy zostaje ikonka.
 class _TipEntry {
   final String text;
   final void Function(BuildContext context) onTap;
-  _TipEntry(this.text, this.onTap);
+  final ClothingItem? item;
+  _TipEntry(this.text, this.onTap, {this.item});
 }
 
 /// Karuzela wskazówek - przełącza się automatycznie co kilka sekund, da się
@@ -529,7 +653,10 @@ class _TipCarouselState extends State<_TipCarousel> {
     if (widget.tips.isEmpty) return const SizedBox.shrink();
 
     return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        _sectionEyebrow(icon: Icons.auto_awesome, label: 'WSKAZÓWKI'),
+        const SizedBox(height: 8),
         SizedBox(
           height: 110,
           child: PageView.builder(
@@ -572,18 +699,28 @@ class _TipCarouselState extends State<_TipCarousel> {
         radius: AppRadius.hero,
         child: Row(
           children: [
-            const Icon(Icons.eco_outlined, size: 18, color: AppColors.primary),
-            const SizedBox(width: 10),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text('WSKAZÓWKA',
-                      style: TextStyle(fontSize: 10, letterSpacing: 1, color: AppColors.primary)),
-                  const SizedBox(height: 2),
-                  Text(entry.text, style: const TextStyle(fontSize: 13, color: AppColors.ink)),
-                ],
+            if (entry.item != null)
+              ClipRRect(
+                borderRadius: BorderRadius.circular(12),
+                child: SizedBox(
+                  width: 44,
+                  height: 44,
+                  child: ClothingPhotoBox(item: entry.item!, height: 44, borderRadius: 12),
+                ),
+              )
+            else
+              Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                  color: AppColors.primarySoft,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: const Icon(Icons.eco_outlined, size: 20, color: AppColors.primary),
               ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(entry.text, style: const TextStyle(fontSize: 13, color: AppColors.ink)),
             ),
           ],
         ),
