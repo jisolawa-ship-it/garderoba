@@ -96,16 +96,38 @@ class DashboardScreen extends StatelessWidget {
       child: Stack(
         fit: StackFit.expand,
         children: [
-          // Własne zdjęcie - ma już wbudowane, naturalne przejście do
-          // jednolitego kremu w dolnej części, więc nie potrzeba tu
-          // dodatkowego gradientu/maski na dole.
+          // Zdjęcie samo w sobie ma naturalne wygaszenie do kremu na samym
+          // dole (przycięte tuż za nim w źródłowym pliku - bez zbędnego,
+          // płaskiego, pustego pasa, który wcześniej robił tu ogromną,
+          // martwą lukę przed powitaniem). Positioned niżej domyka ostatnie
+          // kilkanaście jednostek różnicy koloru między końcem zdjęcia a
+          // tłem appki, na wypadek gdyby BoxFit.cover przy szerszych
+          // ekranach ściął odrobinę więcej niż to naturalne wygaszenie.
           Image.asset(
             'assets/images/home_hero.jpg',
             fit: BoxFit.cover,
-            // Lekko przesunięte w dół względem topCenter - obcina nadmiar
-            // samego sufitu nad żyrandolem i pozwala kadrowi sięgnąć głębiej
-            // w już wtopioną w krem dolną część zdjęcia (płynniejsze przejście).
+            // Lekki bias w górę - na szerszych ekranach (gdzie BoxFit.cover
+            // musi przyciąć górę/dół, nie tylko boki) wolimy ściąć odrobinę
+            // z już wygaszonego dołu niż z sufitu/żyrandola u góry.
             alignment: const Alignment(0, -0.2),
+          ),
+          Positioned(
+            bottom: 0,
+            left: 0,
+            right: 0,
+            child: Container(
+              height: 36,
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [
+                    AppColors.paper.withValues(alpha: 0.0),
+                    AppColors.paper,
+                  ],
+                ),
+              ),
+            ),
           ),
           // Delikatna "podkładka" pod logo i napis - lżejsza niż wcześniej,
           // żeby zdjęcie w tle było bardziej wyraziste/ostre, a nie "spłowiałe".
