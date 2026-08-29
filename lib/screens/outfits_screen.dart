@@ -160,6 +160,13 @@ class _OutfitsScreenState extends State<OutfitsScreen> {
                   foregroundColor: AppColors.gold,
                   padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 9),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadius.pill)),
+                  // OutlinedButton domyślnie wymusza min. 64dp szerokości
+                  // (Material), niezależnie od paddingu - z trzema
+                  // przyciskami w rzędzie w wąskiej kolumnie siatki to
+                  // przepełniało wiersz. Zerujemy minimalny rozmiar, żeby
+                  // przycisk mógł być tak mały, jak faktycznie potrzebuje.
+                  minimumSize: Size.zero,
+                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                 ),
                 child: const Icon(Icons.shuffle, size: 16),
               ),
@@ -171,6 +178,8 @@ class _OutfitsScreenState extends State<OutfitsScreen> {
                   foregroundColor: AppColors.wine,
                   padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 9),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadius.pill)),
+                  minimumSize: Size.zero,
+                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                 ),
                 child: const Icon(Icons.delete_outline, size: 16),
               ),
