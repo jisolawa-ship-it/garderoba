@@ -8,9 +8,20 @@ import '../theme.dart';
 import '../utils.dart';
 import '../widgets/glass_card.dart';
 import '../widgets/outfit_collage.dart';
-import '../widgets/suggestion_card.dart';
 import 'add_item_sheet.dart';
 import 'fitting_room_screen.dart';
+
+/// Nazwa proponowana dla świeżej (jeszcze niezapisanej) sugestii - główny
+/// element kombinacji (sukienka/góra, w tej kolejności pierwszeństwa) i jego
+/// podkategoria, jeśli jest ustawiona.
+String _suggestedNameFor(List<ClothingItem> combo) {
+  final dressMatch = combo.where((i) => i.category == ClothingCategory.dress);
+  final topMatch = combo.where((i) => i.category == ClothingCategory.top);
+  final main = dressMatch.isNotEmpty
+      ? dressMatch.first
+      : (topMatch.isNotEmpty ? topMatch.first : combo.first);
+  return main.subcategory.isNotEmpty ? main.subcategory : main.name;
+}
 
 class OutfitsScreen extends StatefulWidget {
   const OutfitsScreen({super.key});
@@ -20,36 +31,9 @@ class OutfitsScreen extends StatefulWidget {
 }
 
 class _OutfitsScreenState extends State<OutfitsScreen> {
-  List<SuggestionCombo> _suggestions = [];
-  bool _generated = false;
-
-  void _regenerateSuggestions(WardrobeProvider wardrobe) {
-    setState(() {
-      _suggestions = SuggestionEngine.generate(wardrobe.items, wardrobe.outfits);
-    });
-  }
-
-  // Tworzenie stylizacji zawsze odbywa się w Przymierzalni (wejście z Home
-  // albo stąd, po dotknięciu sugestii) - to jedyne miejsce w appce, gdzie
-  // faktycznie układa się i zapisuje nową stylizację.
-  void _useSuggestion(List<ClothingItem> combo, String suggestedName) {
-    Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (_) => FittingRoomScreen(initialItemIds: combo.map((i) => i.id).toList()),
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     final wardrobe = context.watch<WardrobeProvider>();
-
-    if (!wardrobe.isLoading && !_generated) {
-      _generated = true;
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) _regenerateSuggestions(wardrobe);
-      });
-    }
 
     return Scaffold(
       backgroundColor: AppColors.bg,
@@ -69,59 +53,33 @@ class _OutfitsScreenState extends State<OutfitsScreen> {
       body: ListView(
         padding: const EdgeInsets.fromLTRB(0, 12, 0, 40),
         children: [
-          // Sugestie stylizacji wymagają czegoś w szafie, żeby cokolwiek
-          // zaproponować - przy pustej Garderobie panel tylko zajmowałby
-          // miejsce nad pustym stanem poniżej, więc pokazujemy go dopiero,
-          // gdy jest z czego sugerować.
-          if (wardrobe.items.isNotEmpty) ...[
+          if (wardrobe.outfits.isEmpty)
+            // Grafika z łukiem + przycisk na środku - jedyny stan, w którym
+            // pokazujemy to duże tło. Sugestie NIE generują się same przy
+            // wejściu na ekran (świadoma decyzja) - dopiero na wyraźne
+            // dotknięcie przycisku appka losuje propozycję i pokazuje ją w
+            // wyskakującym oknie do przejrzenia.
+            _emptyOutfitsHero(wardrobe)
+          else ...[
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: _panel(
-                title: 'Sugestie stylizacji',
-                trailing: ElevatedButton.icon(
-                  onPressed: () => _regenerateSuggestions(wardrobe),
-                  icon: const Icon(Icons.shuffle, size: 15),
-                  label: const Text('Losuj inne', style: TextStyle(fontSize: 12)),
+              child: SizedBox(
+                width: double.infinity,
+                child: ElevatedButton.icon(
+                  onPressed: () => _suggestStylization(wardrobe),
+                  icon: const Icon(Icons.auto_awesome, size: 18),
+                  label: const Text('Zasugeruj stylizację'),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.primary,
                     foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                    elevation: 0,
+                    padding: const EdgeInsets.symmetric(vertical: 14),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadius.pill)),
+                    elevation: 0,
                   ),
                 ),
-                child: wardrobe.items.length < 2
-                    ? const Text('Dodaj więcej ubrań do szafy, żeby zobaczyć sugestie.',
-                        style: TextStyle(color: AppColors.inkSoft))
-                    : _suggestions.isEmpty
-                        ? const Text(
-                            'Brak nowych propozycji — dodaj więcej ubrań albo zapisz istniejące stylizacje.',
-                            style: TextStyle(color: AppColors.inkSoft))
-                        : Column(
-                            children: _suggestions
-                                .map((s) => SuggestionCard(
-                                      key: ValueKey(s.sortedKey),
-                                      initialCombo: s.items,
-                                      basedOnOutfitName: s.basedOnOutfitName,
-                                      allItems: wardrobe.items,
-                                      onUse: _useSuggestion,
-                                    ))
-                                .toList(),
-                          ),
               ),
             ),
             const SizedBox(height: 16),
-          ],
-          if (wardrobe.outfits.isEmpty)
-            // Pełne tło z łukiem tylko wtedy, gdy szafa jest naprawdę pusta -
-            // to jedyny sensowny "od czego zacząć" komunikat w tym stanie.
-            // Gdy ubrania już są, "Sugestie stylizacji" nad tym blokiem
-            // pokazują konkretne propozycje - duże zdjęcie pod nimi
-            // wyglądało wtedy na zbędny, urwany dodatek (bez przycisku,
-            // z samym tekstem "stwórz w Przymierzalni"), więc dostaje
-            // zamiast tego jeden, konkretny przycisk.
-            wardrobe.items.isEmpty ? _emptyOutfitsHero() : _suggestOutfitButton()
-          else
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
               child: Builder(builder: (context) {
@@ -140,6 +98,7 @@ class _OutfitsScreenState extends State<OutfitsScreen> {
                 );
               }),
             ),
+          ],
         ],
       ),
     );
@@ -173,6 +132,10 @@ class _OutfitsScreenState extends State<OutfitsScreen> {
           const SizedBox(height: 8),
           Row(
             children: [
+              // Jedyne miejsce, z którego appka otwiera Przymierzalnię dla
+              // stylizacji - zawsze z JUŻ zapisanej stylizacji, do edycji.
+              // Świeże sugestie (patrz _suggestStylization) są tylko do
+              // przejrzenia i zapisania, nigdy nie prowadzą wprost tutaj.
               Expanded(
                 child: OutlinedButton(
                   onPressed: () => Navigator.of(context).push(
@@ -212,6 +175,77 @@ class _OutfitsScreenState extends State<OutfitsScreen> {
                 child: const Icon(Icons.delete_outline, size: 16),
               ),
             ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Świeża propozycja stylizacji "od zera" (na wyraźne dotknięcie przycisku
+  /// "Zasugeruj stylizację" - nigdy automatycznie). Tylko do przejrzenia -
+  /// bez przycisku "Użyj"/przejścia do Przymierzalni. Jedyna akcja poza
+  /// zamknięciem to zapisanie jako nowa, samodzielna stylizacja (do niej
+  /// można potem wejść do Przymierzalni przez "Edytuj" na jej karcie).
+  void _suggestStylization(WardrobeProvider wardrobe) {
+    if (wardrobe.items.length < 2) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Dodaj więcej ubrań do szafy, żeby zobaczyć sugestie.')),
+      );
+      return;
+    }
+    final combos = SuggestionEngine.generate(wardrobe.items, wardrobe.outfits, count: 1);
+    if (combos.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Brak nowych propozycji - dodaj więcej ubrań albo zapisz istniejące stylizacje.'),
+        ),
+      );
+      return;
+    }
+    final combo = combos.first;
+
+    showDialog(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        backgroundColor: AppColors.paper,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadius.hero)),
+        title: Text('Propozycja stylizacji', style: displayFont(fontSize: 16)),
+        content: SizedBox(
+          width: 220,
+          child: OutfitCollage(items: combo.items),
+        ),
+        actionsAlignment: MainAxisAlignment.spaceBetween,
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('Zamknij', style: TextStyle(color: AppColors.inkSoft)),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.pop(dialogContext);
+              _suggestStylization(wardrobe);
+            },
+            child: const Text('Losuj inną', style: TextStyle(color: AppColors.gold)),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              await wardrobe.addOutfit(
+                _suggestedNameFor(combo.items),
+                combo.items.map((i) => i.id).toList(),
+              );
+              if (!dialogContext.mounted) return;
+              Navigator.pop(dialogContext);
+              if (!mounted) return;
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Zapisano jako nową stylizację.')),
+              );
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.primary,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadius.pill)),
+            ),
+            child: const Text('Zapisz jako nową'),
           ),
         ],
       ),
@@ -299,15 +333,18 @@ class _OutfitsScreenState extends State<OutfitsScreen> {
     );
   }
 
-  /// Pusty stan Stylizacji, TYLKO gdy szafa też jest pusta (patrz miejsce
-  /// wywołania) - w odróżnieniu od reszty ekranów appki, to NIE jest
-  /// zdjęcie nad kartą, tylko odwrócona kolejność: tło (wnęka z łukiem, bez
-  /// żadnej postaci) wypełnia całą szerokość ekranu, a tekst/przycisk są
-  /// nałożone bezpośrednio na obraz, wyśrodkowane w świetle łuku - stąd
-  /// [Stack] zamiast [EmptyStateCard]. Ułamek 0.08 w [Alignment] to
-  /// wymierzony piksel po pikselu środek wnęki łuku w
-  /// outfits_empty_bg.png (łuk zaczyna się ~18% wysokości, podłoga ~89%).
-  Widget _emptyOutfitsHero() {
+  /// Pusty stan Stylizacji - tło (wnęka z łukiem, bez żadnej postaci)
+  /// wypełnia całą szerokość ekranu, a tekst/przycisk są nałożone
+  /// bezpośrednio na obraz, wyśrodkowane w świetle łuku - stąd [Stack]
+  /// zamiast [EmptyStateCard]. Ułamek 0.08 w [Alignment] to wymierzony
+  /// piksel po pikselu środek wnęki łuku w outfits_empty_bg.png (łuk
+  /// zaczyna się ~18% wysokości, podłoga ~89%).
+  ///
+  /// Przycisk zależy od stanu szafy: bez ubrań - "Dodaj ubranie" (nie ma
+  /// z czego proponować), z ubraniami - "Zasugeruj stylizację" (od razu
+  /// otwiera wyskakujące okno z propozycją).
+  Widget _emptyOutfitsHero(WardrobeProvider wardrobe) {
+    final hasItems = wardrobe.items.isNotEmpty;
     return Stack(
       alignment: const Alignment(0, 0.08),
       children: [
@@ -328,18 +365,23 @@ class _OutfitsScreenState extends State<OutfitsScreen> {
               Text('Brak zapisanych stylizacji',
                   style: displayFont(fontSize: 17), textAlign: TextAlign.center),
               const SizedBox(height: 6),
-              const Text(
-                'Zacznij od dodania pierwszych ubrań do szafy.',
-                style: TextStyle(fontSize: 13, color: AppColors.inkSoft, height: 1.4),
+              Text(
+                hasItems
+                    ? 'Zobacz propozycję dopasowaną do Twojej szafy.'
+                    : 'Zacznij od dodania pierwszych ubrań do szafy.',
+                style: const TextStyle(fontSize: 13, color: AppColors.inkSoft, height: 1.4),
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 18),
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton.icon(
-                  onPressed: () => showAddOptionsSheet(context),
-                  icon: const Icon(Icons.add, size: 16),
-                  label: const Text('Dodaj ubranie', style: TextStyle(fontSize: 13)),
+                  onPressed: hasItems
+                      ? () => _suggestStylization(wardrobe)
+                      : () => showAddOptionsSheet(context),
+                  icon: Icon(hasItems ? Icons.auto_awesome : Icons.add, size: 16),
+                  label: Text(hasItems ? 'Zasugeruj stylizację' : 'Dodaj ubranie',
+                      style: const TextStyle(fontSize: 13)),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.primary,
                     foregroundColor: Colors.white,
@@ -353,62 +395,6 @@ class _OutfitsScreenState extends State<OutfitsScreen> {
           ),
         ),
       ],
-    );
-  }
-
-  /// Gdy szafa NIE jest pusta, ale nie ma jeszcze zapisanej stylizacji -
-  /// "Sugestie stylizacji" nad tym miejscem już pokazują konkretne
-  /// propozycje, więc zamiast dużego zdjęcia z łukiem wystarczy jeden,
-  /// wyraźny przycisk, który od razu otwiera Przymierzalnię z pierwszą
-  /// sugestią (albo pustym płótnem, jeśli sugestii jeszcze nie ma - np.
-  /// przy tylko jednym ubraniu w szafie).
-  Widget _suggestOutfitButton() {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 28),
-        child: ElevatedButton.icon(
-          onPressed: () {
-            if (_suggestions.isNotEmpty) {
-              final s = _suggestions.first;
-              _useSuggestion(s.items, s.basedOnOutfitName ?? '');
-            } else {
-              Navigator.of(context).push(
-                MaterialPageRoute(builder: (_) => const FittingRoomScreen()),
-              );
-            }
-          },
-          icon: const Icon(Icons.auto_awesome, size: 18),
-          label: const Text('Zasugeruj stylizację'),
-          style: ElevatedButton.styleFrom(
-            backgroundColor: AppColors.primary,
-            foregroundColor: Colors.white,
-            padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 14),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadius.pill)),
-            elevation: 0,
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _panel({required String title, Widget? trailing, required Widget child}) {
-    return GlassCard(
-      radius: AppRadius.card,
-      padding: const EdgeInsets.all(14),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(title, style: displayFont(fontSize: 18)),
-              if (trailing != null) trailing,
-            ],
-          ),
-          const SizedBox(height: 10),
-          child,
-        ],
-      ),
     );
   }
 }
