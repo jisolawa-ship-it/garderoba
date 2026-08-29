@@ -115,6 +115,10 @@ class DashboardScreen extends StatelessWidget {
             bottom: 0,
             left: 0,
             right: 0,
+            // Kolor docelowy MUSI być tłem Scaffolda (AppColors.bg), nie
+            // AppColors.paper - to dwa różne odcienie kremu. Gradient
+            // wygaszający do złego koloru robił dokładnie ten sam efekt
+            // "widocznej linii", który miał usuwać.
             child: Container(
               height: 36,
               decoration: BoxDecoration(
@@ -122,27 +126,33 @@ class DashboardScreen extends StatelessWidget {
                   begin: Alignment.topCenter,
                   end: Alignment.bottomCenter,
                   colors: [
-                    AppColors.paper.withValues(alpha: 0.0),
-                    AppColors.paper,
+                    AppColors.bg.withValues(alpha: 0.0),
+                    AppColors.bg,
                   ],
                 ),
               ),
             ),
           ),
-          // Delikatna "podkładka" pod logo i napis - lżejsza niż wcześniej,
-          // żeby zdjęcie w tle było bardziej wyraziste/ostre, a nie "spłowiałe".
-          Container(
-            height: 170,
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                colors: [
-                  AppColors.paper.withValues(alpha: 0.7),
-                  AppColors.paper.withValues(alpha: 0.38),
-                  AppColors.paper.withValues(alpha: 0.0),
-                ],
-                stops: const [0.0, 0.55, 1.0],
+          // Delikatna "podkładka" pod logo i napis - Positioned (nie goły
+          // Container w Stack.expand), żeby naprawdę zajmowała tylko górne
+          // 170px, a nie rozciągała się na całą wysokość zdjęcia.
+          Positioned(
+            top: 0,
+            left: 0,
+            right: 0,
+            child: Container(
+              height: 170,
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [
+                    AppColors.paper.withValues(alpha: 0.85),
+                    AppColors.paper.withValues(alpha: 0.5),
+                    AppColors.paper.withValues(alpha: 0.0),
+                  ],
+                  stops: const [0.0, 0.55, 1.0],
+                ),
               ),
             ),
           ),
