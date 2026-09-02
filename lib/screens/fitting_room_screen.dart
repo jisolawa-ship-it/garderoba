@@ -465,7 +465,11 @@ class _FittingRoomScreenState extends State<FittingRoomScreen> {
                 ),
                 if (_stickers.isNotEmpty)
                   Padding(
-                    padding: const EdgeInsets.fromLTRB(16, 0, 8, 12),
+                    // Dolny margines musi doliczać bezpieczny obszar systemu
+                    // (pasek nawigacji telefonu) - bez tego przycisk potrafi
+                    // wylądować pod paskiem i nie reagować na dotknięcie
+                    // (dotyk "łapie" wtedy system, nie appkę).
+                    padding: EdgeInsets.fromLTRB(16, 0, 8, 12 + MediaQuery.of(context).padding.bottom),
                     child: SizedBox(
                       width: double.infinity,
                       child: ElevatedButton.icon(
