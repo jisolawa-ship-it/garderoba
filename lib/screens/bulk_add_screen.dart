@@ -16,14 +16,18 @@ class _DraftItem {
   final TextEditingController nameCtrl;
   final TextEditingController priceCtrl;
   bool analyzing;
-  bool autoFilled;
+
+  /// Osobno dla kategorii i osobno dla koloru - appka potrafi rozpoznać
+  /// jedno bez drugiego, a wspólna flaga kazała jej twierdzić, że rozpoznała
+  /// oba, nawet gdy kategoria była tylko wartością domyślną.
+  bool categoryAutoFilled = false;
+  bool colorAutoFilled = false;
 
   _DraftItem({
     required this.photo,
     this.category = ClothingCategory.top,
     this.colorHex = '#8C8C88',
     this.analyzing = true,
-    this.autoFilled = false,
   })  : nameCtrl = TextEditingController(),
         priceCtrl = TextEditingController();
 
@@ -118,7 +122,8 @@ class _BulkAddScreenState extends State<BulkAddScreen> {
       setState(() {
         if (result.category != null) draft.category = result.category!;
         if (result.colorHex != null) draft.colorHex = result.colorHex!;
-        draft.autoFilled = result.category != null || result.colorHex != null;
+        draft.categoryAutoFilled = result.category != null;
+        draft.colorAutoFilled = result.colorHex != null;
         draft.analyzing = false;
       });
     } catch (_) {
@@ -315,7 +320,7 @@ class _BulkAddScreenState extends State<BulkAddScreen> {
                           if (c == null) return;
                           setState(() {
                             draft.category = c;
-                            draft.autoFilled = false;
+                            draft.categoryAutoFilled = false;
                           });
                         },
                       ),
@@ -345,12 +350,29 @@ class _BulkAddScreenState extends State<BulkAddScreen> {
                       onTap: () => _pickColorFor(draft),
                       child: ClothingColorSwatch(hex: draft.colorHex, size: 24),
                     ),
-                    if (draft.autoFilled) ...[
+                    if (!draft.analyzing) ...[
                       const SizedBox(width: 6),
-                      const Icon(Icons.auto_awesome, size: 11, color: AppColors.primary),
-                      const SizedBox(width: 2),
-                      const Text('wykryto automatycznie',
-                          style: TextStyle(fontSize: 9, color: AppColors.primary)),
+                      if (draft.categoryAutoFilled || draft.colorAutoFilled) ...[
+                        const Icon(Icons.auto_awesome, size: 11, color: AppColors.primary),
+                        const SizedBox(width: 2),
+                      ],
+                      // Wprost nazywamy to, czego appka NIE rozpoznała.
+                      // Wcześniej każdy wynik wyglądał tak samo pewnie, więc
+                      // domyślna kategoria ("Góra") udawała rozpoznaną i
+                      // łatwo było ją przeoczyć.
+                      Expanded(
+                        child: Text(
+                          _detectionHint(draft),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            fontSize: 9,
+                            color: draft.categoryAutoFilled
+                                ? AppColors.primary
+                                : AppColors.inkSoft,
+                          ),
+                        ),
+                      ),
                     ],
                   ],
                 ),
@@ -364,6 +386,19 @@ class _BulkAddScreenState extends State<BulkAddScreen> {
         ],
       ),
     );
+  }
+
+  /// Krótki, uczciwy opis tego, co appka faktycznie rozpoznała na zdjęciu.
+  /// Rozpoznawanie typu ubrania działa lokalnie, na ogólnym modelu Google -
+  /// przy zdjęciach ubrań rozłożonych na podłodze potrafi się mylić, więc
+  /// zamiast zawsze coś zgadywać, mówi wprost, co warto sprawdzić.
+  String _detectionHint(_DraftItem draft) {
+    if (draft.categoryAutoFilled && draft.colorAutoFilled) {
+      return 'wykryto automatycznie - sprawdź';
+    }
+    if (draft.colorAutoFilled) return 'wykryto kolor - sprawdź kategorię';
+    if (draft.categoryAutoFilled) return 'wykryto kategorię - sprawdź kolor';
+    return 'sprawdź kategorię i kolor';
   }
 
   void _pickColorFor(_DraftItem draft) {
@@ -386,7 +421,7 @@ class _BulkAddScreenState extends State<BulkAddScreen> {
             onChanged: (hex) {
               setState(() {
                 draft.colorHex = hex;
-                draft.autoFilled = false;
+                draft.colorAutoFilled = false;
               });
               Navigator.pop(ctx);
             },
