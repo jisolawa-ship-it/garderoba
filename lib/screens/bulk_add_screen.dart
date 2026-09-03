@@ -23,6 +23,11 @@ class _DraftItem {
   bool categoryAutoFilled = false;
   bool colorAutoFilled = false;
 
+  /// Ustawione ręcznie przez użytkowniczkę - wtedy appka przestaje
+  /// podpowiadać "sprawdź to", bo już jest sprawdzone.
+  bool categoryTouched = false;
+  bool colorTouched = false;
+
   _DraftItem({
     required this.photo,
     this.category = ClothingCategory.top,
@@ -224,11 +229,18 @@ class _BulkAddScreenState extends State<BulkAddScreen> {
                   ? const CircularProgressIndicator(color: AppColors.primary)
                   : const Text('Nie wybrano żadnych zdjęć.', style: TextStyle(color: AppColors.inkSoft)),
             )
-          : ListView.separated(
-              padding: const EdgeInsets.fromLTRB(16, 12, 16, 120),
-              itemCount: _drafts.length,
-              separatorBuilder: (_, __) => const SizedBox(height: 12),
-              itemBuilder: (context, i) => _draftCard(_drafts[i]),
+          : Column(
+              children: [
+                if (_drafts.length > 1) _bulkCategoryBar(),
+                Expanded(
+                  child: ListView.separated(
+                    padding: const EdgeInsets.fromLTRB(16, 12, 16, 120),
+                    itemCount: _drafts.length,
+                    separatorBuilder: (_, __) => const SizedBox(height: 12),
+                    itemBuilder: (context, i) => _draftCard(_drafts[i]),
+                  ),
+                ),
+              ],
             ),
       bottomNavigationBar: _drafts.isEmpty
           ? null
@@ -255,6 +267,97 @@ class _BulkAddScreenState extends State<BulkAddScreen> {
                 ),
               ),
             ),
+    );
+  }
+
+  /// Zdjęcia do jednej paczki robi się zwykle półka po półce, więc cała
+  /// paczka to najczęściej ten sam typ ubrania. Jedno dotknięcie ustawia
+  /// kategorię wszystkim naraz - szybciej niż poprawianie po jednej sztuce,
+  /// niezależnie od tego, jak dobrze zadziałało rozpoznawanie ze zdjęcia.
+  Widget _bulkCategoryBar() {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+      child: Row(
+        children: [
+          const Icon(Icons.checklist_outlined, size: 15, color: AppColors.inkSoft),
+          const SizedBox(width: 6),
+          const Expanded(
+            child: Text(
+              'Cała paczka to ten sam typ?',
+              style: TextStyle(fontSize: 12, color: AppColors.inkSoft),
+            ),
+          ),
+          TextButton(
+            onPressed: _saving ? null : _pickCategoryForAll,
+            style: TextButton.styleFrom(
+              foregroundColor: AppColors.primary,
+              backgroundColor: AppColors.primarySoft,
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              minimumSize: Size.zero,
+              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadius.pill)),
+            ),
+            child: const Text('Ustaw wszystkim', style: TextStyle(fontSize: 12)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _pickCategoryForAll() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: AppColors.paper,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(AppRadius.hero)),
+      ),
+      // SafeArea(top: false) - tak jak przy wyborze koloru, żeby ostatnia
+      // pozycja nie chowała się pod systemowym paskiem nawigacji.
+      builder: (ctx) => SafeArea(
+        top: false,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 20, 20, 4),
+              child: Text('Ustaw kategorię wszystkim (${_drafts.length})',
+                  style: displayFont(fontSize: 17)),
+            ),
+            const Padding(
+              padding: EdgeInsets.fromLTRB(20, 0, 20, 10),
+              child: Text(
+                'Zmienisz to potem pojedynczo, jeśli któreś ubranie odstaje.',
+                style: TextStyle(fontSize: 12, color: AppColors.inkSoft),
+              ),
+            ),
+            for (final c in ClothingCategory.values)
+              ListTile(
+                dense: true,
+                leading: Icon(c.iconData, size: 20, color: AppColors.primary),
+                title: Text(c.label, style: const TextStyle(fontSize: 14)),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  _applyCategoryToAll(c);
+                },
+              ),
+            const SizedBox(height: 8),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _applyCategoryToAll(ClothingCategory category) {
+    setState(() {
+      for (final d in _drafts) {
+        d.category = category;
+        d.categoryAutoFilled = false;
+        d.categoryTouched = true;
+      }
+    });
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Ustawiono "${category.label}" wszystkim (${_drafts.length}).')),
     );
   }
 
@@ -321,6 +424,7 @@ class _BulkAddScreenState extends State<BulkAddScreen> {
                           setState(() {
                             draft.category = c;
                             draft.categoryAutoFilled = false;
+                            draft.categoryTouched = true;
                           });
                         },
                       ),
@@ -350,7 +454,7 @@ class _BulkAddScreenState extends State<BulkAddScreen> {
                       onTap: () => _pickColorFor(draft),
                       child: ClothingColorSwatch(hex: draft.colorHex, size: 24),
                     ),
-                    if (!draft.analyzing) ...[
+                    if (!draft.analyzing && _detectionHint(draft).isNotEmpty) ...[
                       const SizedBox(width: 6),
                       if (draft.categoryAutoFilled || draft.colorAutoFilled) ...[
                         const Icon(Icons.auto_awesome, size: 11, color: AppColors.primary),
@@ -393,12 +497,14 @@ class _BulkAddScreenState extends State<BulkAddScreen> {
   /// przy zdjęciach ubrań rozłożonych na podłodze potrafi się mylić, więc
   /// zamiast zawsze coś zgadywać, mówi wprost, co warto sprawdzić.
   String _detectionHint(_DraftItem draft) {
-    if (draft.categoryAutoFilled && draft.colorAutoFilled) {
-      return 'wykryto automatycznie - sprawdź';
-    }
-    if (draft.colorAutoFilled) return 'wykryto kolor - sprawdź kategorię';
-    if (draft.categoryAutoFilled) return 'wykryto kategorię - sprawdź kolor';
-    return 'sprawdź kategorię i kolor';
+    final categoryOk = draft.categoryAutoFilled || draft.categoryTouched;
+    final colorOk = draft.colorAutoFilled || draft.colorTouched;
+    if (!categoryOk && !colorOk) return 'sprawdź kategorię i kolor';
+    if (!categoryOk) return 'sprawdź kategorię';
+    if (!colorOk) return 'sprawdź kolor';
+    // Wszystko ustawione ręcznie - nie ma się czym chwalić ani o co pytać.
+    if (!draft.categoryAutoFilled && !draft.colorAutoFilled) return '';
+    return 'wykryto automatycznie';
   }
 
   void _pickColorFor(_DraftItem draft) {
@@ -422,6 +528,7 @@ class _BulkAddScreenState extends State<BulkAddScreen> {
               setState(() {
                 draft.colorHex = hex;
                 draft.colorAutoFilled = false;
+                draft.colorTouched = true;
               });
               Navigator.pop(ctx);
             },

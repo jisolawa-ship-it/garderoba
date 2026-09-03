@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:math' as math;
 import 'dart:ui' as ui;
 import 'package:google_mlkit_image_labeling/google_mlkit_image_labeling.dart';
 import '../models/clothing_item.dart';
@@ -165,22 +166,196 @@ class PhotoAnalysisService {
   ];
 
   Future<PhotoAnalysisResult> analyze(File photo) async {
-    ClothingCategory? category;
+    // Najpierw próbujemy przyciąć kadr do samego ubrania. Zdjęcia robione w
+    // domu to zwykle ubranie rozłożone na podłodze albo dywanie - reszta
+    // kadru to tło, które model widzi razem z ubraniem i które psuje wynik
+    // (podpowiada mu "dywan", "drewno", "wnętrze" zamiast typu ubrania).
+    // Jeśli przycięcie się nie uda albo wyjdzie podejrzane, po cichu
+    // pracujemy na oryginale - dokładnie tak jak wcześniej.
+    File? cropped;
     try {
-      category = await _detectCategory(photo);
+      cropped = await _cropToGarment(photo);
     } catch (_) {
-      // Rozpoznawanie nie powiodło się (np. brak modelu na urządzeniu) -
-      // po prostu nie sugerujemy kategorii, formularz zostaje jak był.
+      cropped = null;
     }
+    final source = cropped ?? photo;
 
-    String? colorHex;
     try {
-      colorHex = await _detectColorHex(photo);
-    } catch (_) {
-      // jw. - w razie błędu po prostu nie sugerujemy koloru.
-    }
+      ClothingCategory? category;
+      try {
+        category = await _detectCategory(source);
+      } catch (_) {
+        // Rozpoznawanie nie powiodło się (np. brak modelu na urządzeniu) -
+        // po prostu nie sugerujemy kategorii, formularz zostaje jak był.
+      }
 
-    return PhotoAnalysisResult(category: category, colorHex: colorHex);
+      String? colorHex;
+      try {
+        colorHex = await _detectColorHex(source);
+      } catch (_) {
+        // jw. - w razie błędu po prostu nie sugerujemy koloru.
+      }
+
+      return PhotoAnalysisResult(category: category, colorHex: colorHex);
+    } finally {
+      // Przycięta kopia była wyłącznie na potrzeby rozpoznawania - w szafie
+      // i tak zapisujemy oryginalne zdjęcie, więc kasujemy ją od razu.
+      if (cropped != null) {
+        try {
+          await cropped.delete();
+        } catch (_) {}
+      }
+    }
+  }
+
+  /// Szerokość, do której skalujemy zdjęcie na czas szukania ubrania w
+  /// kadrze. Mniej pikseli = szybciej (w paczce potrafi być 25 zdjęć), a do
+  /// znalezienia obrysu i tak nie potrzeba pełnej rozdzielczości.
+  static const int _analysisWidth = 512;
+
+  /// Wycina z kadru sam prostokąt z ubraniem i zapisuje go jako plik
+  /// tymczasowy. Zwraca null, gdy nie da się tego zrobić sensownie - wtedy
+  /// wolimy zostawić oryginał niż wyciąć coś przypadkowego.
+  ///
+  /// Zasada: tło (podłoga, dywan) dotyka brzegów kadru, ubranie leży na
+  /// środku. Liczymy więc kolor brzegów i szukamy pikseli, które się od
+  /// niego wyraźnie różnią.
+  Future<File?> _cropToGarment(File photo) async {
+    final bytes = await photo.readAsBytes();
+    final codec = await ui.instantiateImageCodec(bytes, targetWidth: _analysisWidth);
+    final frame = await codec.getNextFrame();
+    final image = frame.image;
+
+    try {
+      final data = await image.toByteData(format: ui.ImageByteFormat.rawRgba);
+      if (data == null) return null;
+      final px = data.buffer.asUint8List();
+      final w = image.width;
+      final h = image.height;
+      if (w < 40 || h < 40) return null;
+
+      // 1. Kolor tła - z ramki przy krawędziach kadru.
+      final ringX = (w * 0.06).round().clamp(1, w);
+      final ringY = (h * 0.06).round().clamp(1, h);
+      double sr = 0, sg = 0, sb = 0;
+      int n = 0;
+      for (int y = 0; y < h; y++) {
+        final edgeRow = y < ringY || y >= h - ringY;
+        for (int x = 0; x < w; x++) {
+          if (!edgeRow && x >= ringX && x < w - ringX) continue;
+          final i = (y * w + x) * 4;
+          if (px[i + 3] < 128) continue;
+          sr += px[i];
+          sg += px[i + 1];
+          sb += px[i + 2];
+          n++;
+        }
+      }
+      if (n == 0) return null;
+      final br = sr / n, bg = sg / n, bb = sb / n;
+
+      // 2. Jak bardzo samo tło jest niejednolite. Mocno wzorzysty dywan
+      //    znaczy, że nie odróżnimy go pewnie od ubrania - wtedy odpuszczamy.
+      double varSum = 0;
+      for (int y = 0; y < h; y++) {
+        final edgeRow = y < ringY || y >= h - ringY;
+        for (int x = 0; x < w; x++) {
+          if (!edgeRow && x >= ringX && x < w - ringX) continue;
+          final i = (y * w + x) * 4;
+          if (px[i + 3] < 128) continue;
+          final dr = px[i] - br, dg2 = px[i + 1] - bg, db = px[i + 2] - bb;
+          varSum += dr * dr + dg2 * dg2 + db * db;
+        }
+      }
+      final spread = math.sqrt(varSum / n);
+      // Próg dobrany na zdjęciach z realnej szafy: podłoga z widocznymi
+      // fugami czy liniami ma niejednolitość rzędu 50-90 i nadal da się na
+      // niej znaleźć ubranie. Przy naprawdę wzorzystym tle i tak zadziała
+      // zabezpieczenie niżej (obrys wyjdzie na cały kadr i odpuszczamy).
+      if (spread > 90) return null;
+
+      // 3. Próg "to już nie jest tło" - zależny od tego, jak spokojne jest
+      //    samo tło, żeby jasna bluzka na jasnej podłodze też się wybroniła.
+      final threshold = math.max(34.0, spread * 2.5);
+      final thresholdSq = threshold * threshold;
+
+      // 4. Zamiast pojedynczych pikseli patrzymy na całe wiersze i kolumny -
+      //    pojedynczy odblask czy okruch na podłodze nie rozciągnie wtedy
+      //    obrysu na pół kadru.
+      final rowHits = List<int>.filled(h, 0);
+      final colHits = List<int>.filled(w, 0);
+      for (int y = 0; y < h; y++) {
+        for (int x = 0; x < w; x++) {
+          final i = (y * w + x) * 4;
+          if (px[i + 3] < 128) continue;
+          final dr = px[i] - br, dg2 = px[i + 1] - bg, db = px[i + 2] - bb;
+          if (dr * dr + dg2 * dg2 + db * db > thresholdSq) {
+            rowHits[y]++;
+            colHits[x]++;
+          }
+        }
+      }
+
+      final minRow = (w * 0.04).ceil();
+      final minCol = (h * 0.04).ceil();
+      int top = 0, bottom = h - 1, left = 0, right = w - 1;
+      while (top < h && rowHits[top] < minRow) {
+        top++;
+      }
+      while (bottom > top && rowHits[bottom] < minRow) {
+        bottom--;
+      }
+      while (left < w && colHits[left] < minCol) {
+        left++;
+      }
+      while (right > left && colHits[right] < minCol) {
+        right--;
+      }
+      if (right <= left || bottom <= top) return null;
+
+      // 5. Odrobina zapasu, żeby nie obcinać ubrania równo przy krawędzi.
+      final padX = (w * 0.04).round();
+      final padY = (h * 0.04).round();
+      left = (left - padX).clamp(0, w - 1);
+      right = (right + padX).clamp(0, w - 1);
+      top = (top - padY).clamp(0, h - 1);
+      bottom = (bottom + padY).clamp(0, h - 1);
+
+      final cw = right - left + 1;
+      final ch = bottom - top + 1;
+
+      // 6. Zdrowy rozsądek: za mały wycinek to pewnie przypadkowy detal, a
+      //    prawie cały kadr znaczy, że i tak nic nie zyskujemy.
+      final coverage = (cw * ch) / (w * h);
+      if (coverage < 0.08 || coverage > 0.95) return null;
+      if (cw < w * 0.15 || ch < h * 0.15) return null;
+
+      // 7. Wycinamy i zapisujemy jako plik tymczasowy - ML Kit czyta z pliku.
+      final recorder = ui.PictureRecorder();
+      final canvas = ui.Canvas(recorder);
+      canvas.drawImageRect(
+        image,
+        ui.Rect.fromLTWH(left.toDouble(), top.toDouble(), cw.toDouble(), ch.toDouble()),
+        ui.Rect.fromLTWH(0, 0, cw.toDouble(), ch.toDouble()),
+        ui.Paint(),
+      );
+      final picture = recorder.endRecording();
+      final croppedImage = await picture.toImage(cw, ch);
+      picture.dispose();
+      try {
+        final png = await croppedImage.toByteData(format: ui.ImageByteFormat.png);
+        if (png == null) return null;
+        final file = File(
+          '${Directory.systemTemp.path}/szafnik_crop_${DateTime.now().microsecondsSinceEpoch}.png',
+        );
+        await file.writeAsBytes(png.buffer.asUint8List(), flush: true);
+        return file;
+      } finally {
+        croppedImage.dispose();
+      }
+    } finally {
+      image.dispose();
+    }
   }
 
   /// Ile punktów daje pojedyncza etykieta poszczególnym kategoriom.
