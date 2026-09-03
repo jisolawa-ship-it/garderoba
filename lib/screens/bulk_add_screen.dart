@@ -9,6 +9,18 @@ import '../theme.dart';
 import '../widgets/color_picker_grid.dart';
 import '../widgets/glass_card.dart';
 
+/// Wszystkie typy ubrań z palety kategorii jako jedna lista wyboru.
+/// Wybór podkategorii ("Sweter") ustala też kategorię ("Góra"), więc w ciasnej
+/// karcie wystarczy jedna kontrolka zamiast dwóch - a przy dodawaniu grupowym
+/// to właśnie podkategoria była dotąd wpisywana na sztywno i trzeba ją było
+/// poprawiać ręcznie przy każdej sztuce.
+final List<({ClothingCategory category, String subcategory})> _allTypes = [
+  for (final c in ClothingCategory.values)
+    for (final s in c.defaultSubcategories) (category: c, subcategory: s),
+];
+
+String _typeKey(ClothingCategory c, String subcategory) => '${c.index}|$subcategory';
+
 class _DraftItem {
   final File photo;
   ClothingCategory category;
@@ -36,7 +48,12 @@ class _DraftItem {
   })  : nameCtrl = TextEditingController(),
         priceCtrl = TextEditingController();
 
-  String get subcategory => category.defaultSubcategories.first;
+  String? _subcategory;
+
+  /// Dopóki użytkowniczka sama nie wybierze podkategorii, idzie ona za
+  /// kategorią (tak jak dotąd). Po wyborze - zostaje ten wybór.
+  String get subcategory => _subcategory ?? category.defaultSubcategories.first;
+  set subcategory(String value) => _subcategory = value;
 }
 
 /// Dodawanie kilku ubrań naraz - wybierasz zdjęcia, appka rozpoznaje
@@ -307,6 +324,7 @@ class _BulkAddScreenState extends State<BulkAddScreen> {
   void _pickCategoryForAll() {
     showModalBottomSheet(
       context: context,
+      isScrollControlled: true,
       backgroundColor: AppColors.paper,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(AppRadius.hero)),
@@ -315,49 +333,88 @@ class _BulkAddScreenState extends State<BulkAddScreen> {
       // pozycja nie chowała się pod systemowym paskiem nawigacji.
       builder: (ctx) => SafeArea(
         top: false,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(20, 20, 20, 4),
-              child: Text('Ustaw kategorię wszystkim (${_drafts.length})',
-                  style: displayFont(fontSize: 17)),
-            ),
-            const Padding(
-              padding: EdgeInsets.fromLTRB(20, 0, 20, 10),
-              child: Text(
-                'Zmienisz to potem pojedynczo, jeśli któreś ubranie odstaje.',
-                style: TextStyle(fontSize: 12, color: AppColors.inkSoft),
+        child: ConstrainedBox(
+          // Typów jest 29, więc lista musi się przewijać, ale okno nie może
+          // zasłonić całego ekranu - inaczej nie widać, czego dotyczy.
+          constraints: BoxConstraints(maxHeight: MediaQuery.of(ctx).size.height * 0.7),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 20, 20, 4),
+                child: Text('Ustaw typ wszystkim (${_drafts.length})',
+                    style: displayFont(fontSize: 17)),
               ),
-            ),
-            for (final c in ClothingCategory.values)
-              ListTile(
-                dense: true,
-                leading: Icon(c.iconData, size: 20, color: AppColors.primary),
-                title: Text(c.label, style: const TextStyle(fontSize: 14)),
-                onTap: () {
-                  Navigator.pop(ctx);
-                  _applyCategoryToAll(c);
-                },
+              const Padding(
+                padding: EdgeInsets.fromLTRB(20, 0, 20, 10),
+                child: Text(
+                  'Wybór podkategorii ustawia też kategorię. Pojedyncze sztuki '
+                  'poprawisz potem na kartach.',
+                  style: TextStyle(fontSize: 12, color: AppColors.inkSoft),
+                ),
               ),
-            const SizedBox(height: 8),
-          ],
+              Flexible(
+                child: ListView(
+                  shrinkWrap: true,
+                  padding: const EdgeInsets.only(bottom: 8),
+                  children: [
+                    for (final c in ClothingCategory.values) ...[
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(20, 12, 20, 4),
+                        child: Row(
+                          children: [
+                            Icon(c.iconData, size: 14, color: AppColors.primary),
+                            const SizedBox(width: 6),
+                            Text(
+                              c.label.toUpperCase(),
+                              style: const TextStyle(
+                                fontSize: 10,
+                                letterSpacing: 1,
+                                color: AppColors.primary,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      for (final sub in c.defaultSubcategories)
+                        ListTile(
+                          dense: true,
+                          visualDensity: VisualDensity.compact,
+                          contentPadding: const EdgeInsets.symmetric(horizontal: 20),
+                          title: Text(sub, style: const TextStyle(fontSize: 14)),
+                          onTap: () {
+                            Navigator.pop(ctx);
+                            _applyTypeToAll(c, sub);
+                          },
+                        ),
+                    ],
+                  ],
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
   }
 
-  void _applyCategoryToAll(ClothingCategory category) {
+  void _applyTypeToAll(ClothingCategory category, String subcategory) {
     setState(() {
       for (final d in _drafts) {
         d.category = category;
+        d.subcategory = subcategory;
         d.categoryAutoFilled = false;
         d.categoryTouched = true;
       }
     });
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Ustawiono "${category.label}" wszystkim (${_drafts.length}).')),
+      SnackBar(
+        content: Text(
+          'Ustawiono "${category.label} · $subcategory" wszystkim (${_drafts.length}).',
+        ),
+      ),
     );
   }
 
@@ -411,18 +468,27 @@ class _BulkAddScreenState extends State<BulkAddScreen> {
                 Row(
                   children: [
                     Expanded(
-                      child: DropdownButton<ClothingCategory>(
-                        value: draft.category,
+                      child: DropdownButton<String>(
+                        value: _typeKey(draft.category, draft.subcategory),
                         isExpanded: true,
                         underline: const SizedBox.shrink(),
                         style: const TextStyle(fontSize: 12, color: AppColors.ink),
-                        items: ClothingCategory.values
-                            .map((c) => DropdownMenuItem(value: c, child: Text(c.label)))
-                            .toList(),
-                        onChanged: (c) {
-                          if (c == null) return;
+                        items: [
+                          for (final t in _allTypes)
+                            DropdownMenuItem(
+                              value: _typeKey(t.category, t.subcategory),
+                              child: Text('${t.category.label} · ${t.subcategory}',
+                                  overflow: TextOverflow.ellipsis),
+                            ),
+                        ],
+                        onChanged: (key) {
+                          if (key == null) return;
+                          final t = _allTypes.firstWhere(
+                            (t) => _typeKey(t.category, t.subcategory) == key,
+                          );
                           setState(() {
-                            draft.category = c;
+                            draft.category = t.category;
+                            draft.subcategory = t.subcategory;
                             draft.categoryAutoFilled = false;
                             draft.categoryTouched = true;
                           });
@@ -499,8 +565,8 @@ class _BulkAddScreenState extends State<BulkAddScreen> {
   String _detectionHint(_DraftItem draft) {
     final categoryOk = draft.categoryAutoFilled || draft.categoryTouched;
     final colorOk = draft.colorAutoFilled || draft.colorTouched;
-    if (!categoryOk && !colorOk) return 'sprawdź kategorię i kolor';
-    if (!categoryOk) return 'sprawdź kategorię';
+    if (!categoryOk && !colorOk) return 'sprawdź typ i kolor';
+    if (!categoryOk) return 'sprawdź typ';
     if (!colorOk) return 'sprawdź kolor';
     // Wszystko ustawione ręcznie - nie ma się czym chwalić ani o co pytać.
     if (!draft.categoryAutoFilled && !draft.colorAutoFilled) return '';
