@@ -29,6 +29,17 @@ class _LabelRule {
   bool get isPhrase => pattern.contains(' ');
 }
 
+/// Kolor z palety appki rozłożony na odcień/nasycenie/jasność, policzony raz
+/// przy pierwszym użyciu zamiast przy każdym pikselu.
+class _PaletteHsv {
+  final String hex;
+  final double h;
+  final double s;
+  final double v;
+
+  const _PaletteHsv(this.hex, this.h, this.s, this.v);
+}
+
 /// Rozpoznawanie ubrania ze zdjęcia w całości na urządzeniu:
 /// - kategoria: Google ML Kit Image Labeling (model lokalny, offline, bez opłat
 ///   za zapytanie - w zamian za mniejszą dokładność niż płatne AI w chmurze),
@@ -441,40 +452,148 @@ class PhotoAnalysisService {
     // tło w kadrze, dopóki samo ubranie zajmuje większą część próbkowanej,
     // środkowej strefy niż to, co jest za nim.
     final votes = <String, int>{};
+    var sampled = 0;
+    var nearWhite = 0;
     for (int y = marginY; y < height - marginY; y++) {
       for (int x = marginX; x < width - marginX; x++) {
         final i = (y * width + x) * 4;
         final a = pixels[i + 3];
         if (a < 128) continue; // pomijamy przezroczyste piksele
         final r = pixels[i], g = pixels[i + 1], b = pixels[i + 2];
-        // nadal pomijamy prawie-białe piksele, gdyby akurat trafiło się
-        // czyste, jasne tło nawet w tej środkowej strefie
-        if (r > 235 && g > 235 && b > 235) continue;
+        sampled++;
+        // Prawie-białe piksele zwykle są jasnym tłem, więc ich nie liczymy...
+        if (r > 235 && g > 235 && b > 235) {
+          nearWhite++;
+          continue;
+        }
         final hex = _nearestPaletteColor(r.toDouble(), g.toDouble(), b.toDouble());
         votes[hex] = (votes[hex] ?? 0) + 1;
       }
     }
+
+    // ...ale jeśli to one wypełniają większość kadru, to nie tło, tylko samo
+    // ubranie jest białe. Bez tego wyjątku biała koszula sfotografowana w
+    // dobrym świetle traciła wszystkie swoje piksele i o kolorze decydowały
+    // cienie w fałdach albo resztki podłogi w rogach.
+    if (sampled > 0 && nearWhite > sampled / 2) {
+      _ensurePaletteSplit();
+      final greys = _greyScale!;
+      if (greys.isNotEmpty) {
+        return greys.reduce((a, b) => a.v >= b.v ? a : b).hex;
+      }
+    }
+
     if (votes.isEmpty) return null;
 
     return votes.entries.reduce((a, b) => a.value >= b.value ? a : b).key;
   }
 
-  String _nearestPaletteColor(double r, double g, double b) {
-    String bestHex = kClothingColors.first.hex;
-    double bestDistance = double.infinity;
+  /// Poniżej tego nasycenia uznajemy piksel za odcień szarości, nie za kolor.
+  /// Nisko, bo wolimy pomylić się w stronę koloru - rozbielona, ale wyraźnie
+  /// błękitna tkanina ma być Błękitna, a nie Szara.
+  static const double _chromaFloor = 0.07;
+
+  /// Przy bardzo ciemnych pikselach nasycenie potrafi urosnąć mimo braku
+  /// realnego koloru (różnica 2 na 255 to już "nasycenie" 0.08), przez co
+  /// czarne ubranie wychodziło granatowe. Wymagamy więc też minimalnej
+  /// różnicy bezwzględnej między kanałami.
+  static const double _chromaAbsFloor = 8.0;
+
+  /// Zdjęcia ubrań robione w mieszkaniu są systematycznie niedoświetlone -
+  /// biała tkanina ma na nich realnie jasność ~0.71, a nie ~0.96 jak biel
+  /// z palety. Bez tej korekty biel wychodziła szara albo beżowa.
+  static const double _exposureBoost = 1.25;
+
+  // Przy dopasowaniu kolorowych tkanin najważniejszy jest odcień; jasność i
+  // nasycenie tylko go doprecyzowują (inaczej blady błękit lądował w
+  // granacie, bo granat ma niemal ten sam odcień, tylko ciemniejszy).
+  static const double _wHue = 1.0;
+  static const double _wValue = 0.6;
+  static const double _wSaturation = 0.7;
+
+  static List<_PaletteHsv>? _greyScale;
+  static List<_PaletteHsv>? _chromaticPalette;
+
+  /// Dzieli paletę appki na czyste szarości i kolory - wyliczane z samej
+  /// palety, nie wpisane ręcznie, więc dopisanie koloru w theme.dart nie
+  /// wymaga zmian tutaj.
+  static void _ensurePaletteSplit() {
+    if (_greyScale != null) return;
+    final greys = <_PaletteHsv>[];
+    final chromatic = <_PaletteHsv>[];
     for (final c in kClothingColors) {
-      if (c.hex == 'multi') continue; // 'multi' nie jest realnym kolorem do dopasowania
+      if (c.hex == 'multi') continue; // 'multi' nie jest realnym kolorem
       final color = hexToColor(c.hex);
-      final dr = (color.r * 255.0).round() - r;
-      final dg = (color.g * 255.0).round() - g;
-      final db = (color.b * 255.0).round() - b;
-      final distance = dr * dr + dg * dg + db * db;
-      if (distance < bestDistance) {
-        bestDistance = distance;
-        bestHex = c.hex;
+      final r = color.r * 255.0, g = color.g * 255.0, b = color.b * 255.0;
+      final hsv = _toHsv(r, g, b);
+      final entry = _PaletteHsv(c.hex, hsv.$1, hsv.$2, hsv.$3);
+      (hsv.$2 < _chromaFloor ? greys : chromatic).add(entry);
+    }
+    _greyScale = greys;
+    _chromaticPalette = chromatic;
+  }
+
+  /// Odcień (0-360), nasycenie (0-1) i jasność (0-1). Rozdzielenie tych
+  /// trzech rzeczy to sedno poprawki: wcześniej porównywaliśmy surowe RGB,
+  /// więc "biel w cieniu" wypadała bliżej szarości niż bieli.
+  static (double, double, double) _toHsv(double r, double g, double b) {
+    final maxC = math.max(r, math.max(g, b));
+    final minC = math.min(r, math.min(g, b));
+    final delta = maxC - minC;
+    final v = maxC / 255.0;
+    final s = maxC == 0 ? 0.0 : delta / maxC;
+    double h = 0;
+    if (delta != 0) {
+      if (maxC == r) {
+        h = 60 * (((g - b) / delta) % 6);
+      } else if (maxC == g) {
+        h = 60 * (((b - r) / delta) + 2);
+      } else {
+        h = 60 * (((r - g) / delta) + 4);
       }
     }
-    return bestHex;
+    if (h < 0) h += 360;
+    return (h, s, v);
+  }
+
+  String _nearestPaletteColor(double r, double g, double b) {
+    _ensurePaletteSplit();
+    final greys = _greyScale!;
+    final chromatic = _chromaticPalette!;
+    final hsv = _toHsv(r, g, b);
+    final h = hsv.$1, s = hsv.$2, v = hsv.$3;
+    final chromaAbs = math.max(r, math.max(g, b)) - math.min(r, math.min(g, b));
+
+    // Prawie bez koloru - wybieramy odcień szarości po jasności, a nie po
+    // odległości RGB (po niej blada biel przegrywała z beżem).
+    if ((s < _chromaFloor || chromaAbs < _chromaAbsFloor) && greys.isNotEmpty) {
+      final corrected = math.min(v * _exposureBoost, 1.0);
+      var best = greys.first;
+      var bestDiff = double.infinity;
+      for (final grey in greys) {
+        final diff = (corrected - grey.v).abs();
+        if (diff < bestDiff) {
+          bestDiff = diff;
+          best = grey;
+        }
+      }
+      return best.hex;
+    }
+
+    if (chromatic.isEmpty) return kClothingColors.first.hex;
+    var best = chromatic.first;
+    var bestScore = double.infinity;
+    for (final c in chromatic) {
+      var dh = (h - c.h).abs();
+      if (dh > 180) dh = 360 - dh;
+      final score =
+          _wHue * (dh / 180) + _wValue * (v - c.v).abs() + _wSaturation * (s - c.s).abs();
+      if (score < bestScore) {
+        bestScore = score;
+        best = c;
+      }
+    }
+    return best.hex;
   }
 
   void dispose() {
